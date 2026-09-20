@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#061a2f">
+  <meta name="description" content="Cloud247 TV – en enkel nettleserbasert spiller for dine egne M3U-spillelister.">
+  <title>Cloud247 TV</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=1.0.0">
+  <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js" onerror="window.__hlsLoadError=true"></script>
+  <script defer src="app.js?v=1.0.0"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Hopp til innhold</a>
+  <header class="site-header">
+    <div class="header-inner shell">
+      <a class="cloud-brand" href="https://cloud247.no/" aria-label="Cloud247"><img src="assets/cloud247-logo.svg" alt="Cloud247"></a>
+      <div class="header-account">
+        <div class="language-switcher" aria-label="Språk">
+          <button type="button" class="is-active" data-lang="no" aria-pressed="true">NO</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <span class="header-label">CLOUD247 TV</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="welcome" class="welcome">
+      <div class="shell welcome-grid">
+        <div class="welcome-copy">
+          <p class="eyebrow" data-i18n="eyebrow">DIN SPILLELISTE · DIN TV</p>
+          <h1><span data-i18n="hero1">TV uten</span><br><span class="hero-soft" data-i18n="hero2">unødvendig støy</span><span class="heading-dot">.</span></h1>
+          <p class="lead" data-i18n="lead">Legg inn din egen M3U-liste og få et ryddig kanalgrensesnitt med favoritter, grupper og programoversikt.</p>
+          <div class="hero-tags"><span><i class="tiny-dot"></i><span data-i18n="tagLocal">Spillelisten lagres ikke</span></span><span data-i18n="tagEpg">XMLTV / EPG</span><span data-i18n="tagHls">HLS-avspilling</span></div>
+        </div>
+
+        <section class="source-card" aria-labelledby="sourceTitle">
+          <div class="source-heading">
+            <div class="source-icon" aria-hidden="true">▶</div>
+            <div><p class="kicker" data-i18n="start">KOM I GANG</p><h2 id="sourceTitle" data-i18n="sourceTitle">Legg til TV-kilde</h2></div>
+          </div>
+          <div class="source-tabs" role="tablist" aria-label="Kildetype">
+            <button class="is-active" data-source-tab="url" role="tab" aria-selected="true" data-i18n="urlTab">M3U-adresse</button>
+            <button data-source-tab="file" role="tab" aria-selected="false" data-i18n="fileTab">M3U-fil</button>
+          </div>
+          <div id="urlPane" class="source-pane">
+            <label class="field"><span data-i18n="m3uAddress">M3U / M3U8-adresse</span><input id="playlistUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…/playlist.m3u"></label>
+            <button id="loadUrl" class="primary-button" type="button"><span data-i18n="openPlaylist">Åpne spilleliste</span><span aria-hidden="true">→</span></button>
+          </div>
+          <div id="filePane" class="source-pane" hidden>
+            <label class="file-drop" for="playlistFile"><strong data-i18n="chooseFile">Velg M3U-fil</strong><span data-i18n="chooseFileHelp">eller slipp filen her</span><input id="playlistFile" type="file" accept=".m3u,.m3u8,text/plain,audio/x-mpegurl,application/vnd.apple.mpegurl"></label>
+          </div>
+          <p class="privacy-note"><span aria-hidden="true">●</span> <span data-i18n="privacy">Kilden behandles i nettleseren. Cloud247 lagrer ikke spillelisten eller innloggingsdetaljer.</span></p>
+          <div id="sourceError" class="notice error" role="alert" hidden></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="tvApp" class="tv-shell" hidden>
+      <div class="app-toolbar shell-wide">
+        <div class="playlist-meta"><span class="status-dot"></span><strong id="playlistName">Min spilleliste</strong><span id="playlistStats">0 kanaler</span></div>
+        <div class="toolbar-actions">
+          <button id="epgButton" class="toolbar-button" type="button" data-i18n="epgButton">EPG</button>
+          <button id="replaceButton" class="toolbar-button" type="button" data-i18n="replace">Bytt liste</button>
+        </div>
+      </div>
+
+      <div class="tv-layout shell-wide">
+        <aside class="group-panel" aria-label="Kanalgrupper">
+          <div class="panel-title"><span data-i18n="groups">GRUPPER</span><span id="groupCount"></span></div>
+          <nav id="groups" class="group-list"></nav>
+        </aside>
+
+        <section class="channel-panel" aria-labelledby="channelTitle">
+          <div class="channel-head">
+            <div><p class="kicker" id="selectedGroupLabel" data-i18n="allChannels">ALLE KANALER</p><h2 id="channelTitle" data-i18n="channels">Kanaler</h2></div>
+            <span id="visibleCount" class="count-pill">0</span>
+          </div>
+          <label class="search-box"><span class="sr-only" data-i18n="search">Søk kanaler</span><span aria-hidden="true">⌕</span><input id="channelSearch" type="search" autocomplete="off" placeholder="Søk kanaler…" data-i18n-placeholder="searchPlaceholder"></label>
+          <div id="channelList" class="channel-list" tabindex="-1"></div>
+          <div id="emptyChannels" class="empty-state" hidden><strong data-i18n="noChannels">Ingen kanaler funnet</strong><span data-i18n="trySearch">Prøv et annet søk eller en annen gruppe.</span></div>
+        </section>
+
+        <section class="player-panel" aria-label="TV-spiller">
+          <div class="video-wrap">
+            <video id="video" controls playsinline preload="metadata"></video>
+            <div id="videoPlaceholder" class="video-placeholder">
+              <div class="play-mark">▶</div><strong data-i18n="pickChannel">Velg en kanal</strong><span data-i18n="pickChannelHelp">Avspillingen starter her.</span>
+            </div>
+            <div id="playerMessage" class="player-message" hidden></div>
+          </div>
+          <div class="now-card">
+            <div class="now-top">
+              <div class="current-channel">
+                <div id="currentLogo" class="current-logo"><span>TV</span></div>
+                <div><p class="kicker" data-i18n="nowWatching">SER PÅ</p><h2 id="currentName" data-i18n="nothingSelected">Ingen kanal valgt</h2><p id="currentGroup" class="muted">—</p></div>
+              </div>
+              <button id="favoriteCurrent" class="favorite-big" type="button" aria-label="Favoritt" aria-pressed="false" disabled>☆</button>
+            </div>
+            <div class="programme-grid">
+              <div><span class="programme-label" data-i18n="now">NÅ</span><strong id="nowTitle" data-i18n="noEpg">Ingen EPG lastet</strong><span id="nowTime">—</span></div>
+              <div><span class="programme-label" data-i18n="next">NESTE</span><strong id="nextTitle">—</strong><span id="nextTime">—</span></div>
+            </div>
+            <div id="progressWrap" class="programme-progress" hidden><span id="progressBar"></span></div>
+          </div>
+          <div class="player-help"><span data-i18n="playerHelp">Noen IPTV-kilder blokkerer nettlesere med CORS eller bruker kodeker nettleseren ikke støtter.</span></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="epgDialog" class="modal">
+    <form method="dialog" class="modal-card">
+      <div class="modal-head"><div><p class="kicker">XMLTV</p><h2 data-i18n="epgTitle">Programguide</h2></div><button class="close-button" value="cancel" aria-label="Lukk">×</button></div>
+      <p class="modal-copy" data-i18n="epgIntro">Legg til XMLTV fra en URL eller fil. Guiden brukes kun i denne fanen.</p>
+      <label class="field"><span data-i18n="epgUrl">XMLTV-adresse</span><input id="epgUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/epg.xml"></label>
+      <div class="modal-actions"><button id="loadEpgUrl" type="button" class="primary-button" data-i18n="loadEpg">Last EPG</button><label class="secondary-button file-button" for="epgFile"><span data-i18n="chooseXml">Velg XMLTV-fil</span><input id="epgFile" type="file" accept=".xml,.xmltv,text/xml,application/xml"></label></div>
+      <p id="epgHint" class="field-help"></p>
+      <div id="epgError" class="notice error" role="alert" hidden></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer><div class="shell footer-inner"><span>© 2026 Cloud247</span><span class="footer-version">Cloud247 TV <span>v1.0.0</span></span><a href="https://cloud247.no/">cloud247.no ↗</a></div></footer>
+</body>
+</html>
