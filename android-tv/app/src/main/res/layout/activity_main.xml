@@ -317,6 +317,14 @@
                     android:textColor="@color/muted"
                     android:textSize="14sp" />
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="18dp"
+                    android:text="OK: se kanal   •   Hold OK: favoritt"
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
+
                 <Space
                     android:layout_width="0dp"
                     android:layout_height="1dp"
@@ -351,7 +359,7 @@
                 android:orientation="horizontal">
 
                 <LinearLayout
-                    android:layout_width="280dp"
+                    android:layout_width="320dp"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:background="@drawable/panel_bg"
@@ -381,9 +389,10 @@
                 </LinearLayout>
 
                 <LinearLayout
-                    android:layout_width="470dp"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_marginLeft="14dp"
+                    android:layout_marginLeft="16dp"
+                    android:layout_weight="1"
                     android:orientation="vertical"
                     android:background="@drawable/panel_bg"
                     android:padding="12dp">
@@ -421,184 +430,9 @@
                         android:dividerHeight="5dp"
                         android:listSelector="@drawable/focus_list_item"
                         android:focusable="true"
-                        android:nextFocusLeft="@id/groupList"
-                        android:nextFocusRight="@id/fullscreenButton" />
+                        android:nextFocusLeft="@id/groupList" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginLeft="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:background="@drawable/panel_bg"
-                    android:padding="14dp">
-
-                    <androidx.media3.ui.PlayerView
-                        android:id="@+id/playerView"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:background="#02070C"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
-                        app:show_buffering="when_playing"
-                        app:use_controller="false" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="SER PÅ"
-                                android:textColor="@color/yellow"
-                                android:textSize="13sp"
-                                android:textStyle="bold"
-                                android:letterSpacing="0.08" />
-
-                            <TextView
-                                android:id="@+id/currentChannel"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:text="Velg en kanal"
-                                android:textColor="@color/white"
-                                android:textSize="28sp"
-                                android:textStyle="bold"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-
-                            <TextView
-                                android:id="@+id/currentGroup"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="—"
-                                android:textColor="@color/muted"
-                                android:textSize="15sp"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/favoriteButton"
-                            android:layout_width="68dp"
-                            android:layout_height="50dp"
-                            android:layout_marginLeft="10dp"
-                            android:background="@drawable/focus_button"
-                            android:text="☆"
-                            android:textColor="@color/button_text"
-                            android:textSize="26sp"
-                            android:nextFocusLeft="@id/channelList"
-                            android:nextFocusRight="@id/fullscreenButton" />
-
-                        <Button
-                            android:id="@+id/fullscreenButton"
-                            android:layout_width="150dp"
-                            android:layout_height="50dp"
-                            android:layout_marginLeft="10dp"
-                            android:background="@drawable/focus_button"
-                            android:text="SE FULLSKJERM"
-                            android:textColor="@color/button_text"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:nextFocusLeft="@id/favoriteButton" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:orientation="horizontal"
-                        android:paddingTop="12dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:paddingRight="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="NÅ"
-                                android:textColor="@color/yellow"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:id="@+id/nowTitle"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="Ingen EPG lastet"
-                                android:textColor="@color/white"
-                                android:textSize="17sp"
-                                android:textStyle="bold"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-                            <TextView
-                                android:id="@+id/nowTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="—"
-                                android:textColor="@color/muted"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:paddingLeft="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="NESTE"
-                                android:textColor="@color/muted"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:id="@+id/nextTitle"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="—"
-                                android:textColor="@color/white"
-                                android:textSize="17sp"
-                                android:textStyle="bold"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-                            <TextView
-                                android:id="@+id/nextTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="—"
-                                android:textColor="@color/muted"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/playerStatus"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="Android TV spiller streamen direkte uten nettleser-CORS."
-                        android:textColor="@color/muted"
-                        android:textSize="13sp"
-                        android:maxLines="2" />
-                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>
