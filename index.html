@@ -4,58 +4,153 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#061a2f">
-  <meta name="description" content="Cloud247 TV – en enkel nettleserbasert spiller for dine egne M3U-spillelister.">
-  <title>Cloud247 TV</title>
+  <meta name="description" content="Cloud247 TV – Android TV-app for dine egne M3U-spillelister, med QR-pairing, favoritter, grupper og programguide.">
+  <title>Cloud247 TV – Android TV for din egen spilleliste</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=1.0.3">
+  <link rel="stylesheet" href="styles.css?v=2.0.0">
   <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js" onerror="window.__hlsLoadError=true"></script>
-  <script defer src="app.js?v=1.0.3"></script>
+  <script defer src="app.js?v=1.0.4"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Hopp til innhold</a>
+
   <header class="site-header">
     <div class="header-inner shell">
-      <a class="cloud-brand" href="https://cloud247.no/" aria-label="Cloud247"><img src="assets/cloud247-logo.svg" alt="Cloud247"></a>
+      <a class="cloud-brand" href="https://cloud247.no/" aria-label="Cloud247">
+        <img src="assets/cloud247-logo.svg" alt="Cloud247">
+      </a>
+
+      <nav class="site-nav" aria-label="Hovedmeny">
+        <a href="#android-tv" data-i18n="navAndroid">Android TV</a>
+        <a href="/link/" data-i18n="navPair">Koble TV</a>
+        <a href="#web-player" data-i18n="navWeb">Webspiller</a>
+      </nav>
+
       <div class="header-account">
         <div class="language-switcher" aria-label="Språk">
           <button type="button" class="is-active" data-lang="no" aria-pressed="true">NO</button>
           <button type="button" data-lang="en" aria-pressed="false">EN</button>
         </div>
-        <span class="header-label">CLOUD247 TV</span>
       </div>
     </div>
   </header>
 
   <main id="main">
     <section id="welcome" class="welcome">
-      <div class="shell welcome-grid">
-        <div class="welcome-copy">
-          <p class="eyebrow" data-i18n="eyebrow">DIN SPILLELISTE · DIN TV</p>
-          <h1><span data-i18n="hero1">TV uten</span><br><span class="hero-soft" data-i18n="hero2">unødvendig støy</span><span class="heading-dot">.</span></h1>
-          <p class="lead" data-i18n="lead">Legg inn din egen M3U-liste og få et ryddig kanalgrensesnitt med favoritter, grupper og programoversikt.</p>
-          <div class="hero-tags"><span><i class="tiny-dot"></i><span data-i18n="tagLocal">Spillelisten lagres ikke</span></span><span data-i18n="tagEpg">XMLTV / EPG</span><span data-i18n="tagHls">HLS-avspilling</span></div>
-        </div>
+      <section id="android-tv" class="product-hero">
+        <div class="shell product-hero-grid">
+          <div class="product-copy">
+            <div class="version-pill"><span></span><span data-i18n="nativeApp">ANDROID TV · v1.1.6</span></div>
+            <p class="eyebrow" data-i18n="eyebrowNew">DIN TV · DIN SPILLELISTE</p>
+            <h1>
+              <span data-i18n="heroNew1">TV-en din.</span><br>
+              <span class="hero-soft" data-i18n="heroNew2">Spillelisten din.</span>
+            </h1>
+            <p class="lead" data-i18n="leadNew">Cloud247 TV gir deg et ryddig Android TV-grensesnitt for din egen M3U-liste – med QR-pairing, favoritter, smarte grupper og direkte avspilling fra TV-en.</p>
 
-        <section class="source-card" aria-labelledby="sourceTitle">
-          <div class="source-heading">
-            <div class="source-icon" aria-hidden="true">▶</div>
-            <div><p class="kicker" data-i18n="start">KOM I GANG</p><h2 id="sourceTitle" data-i18n="sourceTitle">Legg til TV-kilde</h2></div>
+            <div class="hero-actions">
+              <a class="primary-link" href="/link/"><span data-i18n="pairTv">Koble TV</span><span aria-hidden="true">→</span></a>
+              <a class="secondary-link" href="https://github.com/cloud247-hub/Cloud-247-TV/releases/latest" target="_blank" rel="noopener"><span data-i18n="downloadAndroid">Last ned Android TV</span><span aria-hidden="true">↗</span></a>
+              <a class="text-link" href="#web-player" data-i18n="tryWeb">Prøv webspilleren</a>
+            </div>
+
+            <div class="hero-points" aria-label="Funksjoner">
+              <span><i></i><span data-i18n="pointDirect">Direkte avspilling på TV-en</span></span>
+              <span><i></i><span data-i18n="pointQr">QR-pairing på få sekunder</span></span>
+              <span><i></i><span data-i18n="pointLocal">Ingen videoproxy</span></span>
+            </div>
           </div>
-          <div class="source-tabs" role="tablist" aria-label="Kildetype">
-            <button class="is-active" data-source-tab="url" role="tab" aria-selected="true" data-i18n="urlTab">M3U-adresse</button>
-            <button data-source-tab="file" role="tab" aria-selected="false" data-i18n="fileTab">M3U-fil</button>
+
+          <div class="app-preview" aria-label="Forhåndsvisning av Cloud247 TV">
+            <div class="preview-top">
+              <div class="preview-brand">
+                <div class="preview-mark" aria-hidden="true">☁</div>
+                <div><strong>CLOUD247 TV</strong><span data-i18n="previewSub">DIN TV · DIN SPILLELISTE</span></div>
+              </div>
+              <span class="preview-version">v1.1.6</span>
+            </div>
+
+            <div class="preview-meta">
+              <div><strong>tv.example</strong><span>335 <span data-i18n="channelsWord">kanaler</span></span></div>
+              <div class="preview-actions"><span>EPG</span><span data-i18n="replace">Bytt liste</span></div>
+            </div>
+
+            <div class="preview-body">
+              <div class="preview-groups">
+                <small data-i18n="groups">GRUPPER</small>
+                <div class="preview-group active"><span data-i18n="all">Alle kanaler</span><b>335</b></div>
+                <div class="preview-group"><span>★ <span data-i18n="favorites">Favoritter</span></span><b>8</b></div>
+                <div class="preview-group"><span data-i18n="norwegianChannels">Norske kanaler</span><b>42</b></div>
+                <div class="preview-group"><span>Premier League</span><b>18</b></div>
+              </div>
+
+              <div class="preview-channels">
+                <div class="preview-search" data-i18n="searchPlaceholder">Søk kanaler…</div>
+                <div class="preview-channel"><span class="preview-logo">NRK</span><div><strong>NRK1 HD NO</strong><small data-i18n="norwegianChannels">Norske kanaler</small></div><span>☆</span></div>
+                <div class="preview-channel active"><span class="preview-logo">T2</span><div><strong>TV 2 Direkte HD NO</strong><small data-i18n="norwegianChannels">Norske kanaler</small></div><span>★</span></div>
+                <div class="preview-channel"><span class="preview-logo">EPL</span><div><strong>EPL 1 HD</strong><small>Premier League</small></div><span>☆</span></div>
+              </div>
+            </div>
+
+            <div class="preview-help"><span>OK</span> <span data-i18n="previewPlay">åpner kanal</span><b>·</b><span data-i18n="previewFav">Hold OK for favoritt</span></div>
           </div>
-          <div id="urlPane" class="source-pane">
-            <label class="field"><span data-i18n="m3uAddress">M3U / M3U8-adresse</span><input id="playlistUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…/playlist.m3u"></label>
-            <button id="loadUrl" class="primary-button" type="button"><span data-i18n="openPlaylist">Åpne spilleliste</span><span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <section class="benefits">
+        <div class="shell benefit-grid">
+          <article class="benefit-card">
+            <span class="benefit-number">01</span>
+            <h2 data-i18n="benefit1Title">Koble på mobilen</h2>
+            <p data-i18n="benefit1Text">Skann QR-koden på TV-en, lim inn M3U-adressen på mobilen og fortsett med fjernkontrollen.</p>
+          </article>
+          <article class="benefit-card">
+            <span class="benefit-number">02</span>
+            <h2 data-i18n="benefit2Title">Spill direkte</h2>
+            <p data-i18n="benefit2Text">TV-en kobler seg direkte til leverandøren. Ingen nettleser-CORS og ingen videostrøm gjennom Cloud247.</p>
+          </article>
+          <article class="benefit-card">
+            <span class="benefit-number">03</span>
+            <h2 data-i18n="benefit3Title">Finn kanalene raskt</h2>
+            <p data-i18n="benefit3Text">Favoritter, vanlige grupper, Norske kanaler og Premier League gjør store spillelister enklere å bruke.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="web-player" class="web-player-section">
+        <div class="shell web-player-grid">
+          <div class="web-player-copy">
+            <p class="eyebrow" data-i18n="webEyebrow">WEBSPILLER · BETA</p>
+            <h2 data-i18n="webTitle">Vil du teste i nettleseren?</h2>
+            <p data-i18n="webLead">Du kan fortsatt åpne M3U-listen her. Selve videostrømmen må støtte nettleseravspilling, CORS og riktig kodek. For vanlig TV-bruk anbefales Android TV-appen.</p>
+
+            <div class="browser-note">
+              <strong data-i18n="browserNoteTitle">Hvorfor kan VLC virke når nettleseren ikke gjør det?</strong>
+              <p data-i18n="browserNoteText">Nettlesere håndhever CORS og mixed-content-regler som native spillere ikke har. Derfor kan enkelte IPTV-kilder bare spilles i Android TV-appen eller VLC.</p>
+            </div>
           </div>
-          <div id="filePane" class="source-pane" hidden>
-            <label class="file-drop" for="playlistFile"><strong data-i18n="chooseFile">Velg M3U-fil</strong><span data-i18n="chooseFileHelp">eller slipp filen her</span><input id="playlistFile" type="file" accept=".m3u,.m3u8,text/plain,audio/x-mpegurl,application/vnd.apple.mpegurl"></label>
-          </div>
-          <p class="privacy-note"><span aria-hidden="true">●</span> <span data-i18n="privacy">Kilden behandles i nettleseren. Cloud247 lagrer ikke spillelisten eller innloggingsdetaljer.</span></p>
-          <div id="sourceError" class="notice error" role="alert" hidden></div>
-        </section>
-      </div>
+
+          <section class="source-card" aria-labelledby="sourceTitle">
+            <div class="source-heading">
+              <div class="source-icon" aria-hidden="true">▶</div>
+              <div><p class="kicker" data-i18n="start">KOM I GANG</p><h2 id="sourceTitle" data-i18n="sourceTitle">Legg til TV-kilde</h2></div>
+            </div>
+            <div class="source-tabs" role="tablist" aria-label="Kildetype">
+              <button class="is-active" data-source-tab="url" role="tab" aria-selected="true" data-i18n="urlTab">M3U-adresse</button>
+              <button data-source-tab="file" role="tab" aria-selected="false" data-i18n="fileTab">M3U-fil</button>
+            </div>
+            <div id="urlPane" class="source-pane">
+              <label class="field"><span data-i18n="m3uAddress">M3U / M3U8-adresse</span><input id="playlistUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…/playlist.m3u"></label>
+              <button id="loadUrl" class="primary-button" type="button"><span data-i18n="openPlaylist">Åpne spilleliste</span><span aria-hidden="true">→</span></button>
+            </div>
+            <div id="filePane" class="source-pane" hidden>
+              <label class="file-drop" for="playlistFile"><strong data-i18n="chooseFile">Velg M3U-fil</strong><span data-i18n="chooseFileHelp">eller slipp filen her</span><input id="playlistFile" type="file" accept=".m3u,.m3u8,text/plain,audio/x-mpegurl,application/vnd.apple.mpegurl"></label>
+            </div>
+            <p class="privacy-note"><span aria-hidden="true">●</span> <span data-i18n="privacy">Kilden behandles i nettleseren. Cloud247 lagrer ikke spillelisten eller innloggingsdetaljer.</span></p>
+            <div id="sourceError" class="notice error" role="alert" hidden></div>
+          </section>
+        </div>
+      </section>
     </section>
 
     <section id="tvApp" class="tv-shell" hidden>
@@ -123,6 +218,13 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <footer><div class="shell footer-inner"><span>© 2026 Cloud247</span><span class="footer-version">Cloud247 TV <span>v1.0.3</span></span><a href="https://cloud247.no/">cloud247.no ↗</a></div></footer>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>© 2026 Cloud247</span>
+      <span class="footer-version">Cloud247 TV · Android TV v1.1.6</span>
+      <a href="https://cloud247.no/">cloud247.no ↗</a>
+    </div>
+  </footer>
 </body>
 </html>
