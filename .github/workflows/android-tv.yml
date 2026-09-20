@@ -22,7 +22,20 @@ jobs:
 
       - name: Reconstruct source package
         run: |
-          cat android-tv/.bootstrap/source.b64.* | base64 --decode > /tmp/Cloud247-TV-Android-v1.0.0-source.zip
+          cat \
+            android-tv/.bootstrap/source.b64.00 \
+            android-tv/.bootstrap/correct.01a \
+            android-tv/.bootstrap/correct.01b \
+            android-tv/.bootstrap/correct.02a \
+            android-tv/.bootstrap/correct.02b \
+            android-tv/.bootstrap/correct.03a \
+            android-tv/.bootstrap/correct.03b \
+            android-tv/.bootstrap/source.b64.04 \
+            android-tv/.bootstrap/source.b64.05 \
+            android-tv/.bootstrap/source.b64.06 \
+            > /tmp/cloud247-tv-source.b64
+          echo "af4dc5d4ea0a48e3498f71382f7afe11025fcbf58bc999b10528f0e3f10eff39  /tmp/cloud247-tv-source.b64" | sha256sum -c -
+          base64 --decode /tmp/cloud247-tv-source.b64 > /tmp/Cloud247-TV-Android-v1.0.0-source.zip
           unzip -tq /tmp/Cloud247-TV-Android-v1.0.0-source.zip
           rm -rf /tmp/cloud247-android-tv
           mkdir -p /tmp/cloud247-android-tv
