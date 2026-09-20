@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "android-tv/.bootstrap/source.b64.*"
+      - "android-tv/**"
       - ".github/workflows/android-tv.yml"
 
 permissions:
@@ -19,27 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Reconstruct source package
-        run: |
-          cat \
-            android-tv/.bootstrap/source.b64.00 \
-            android-tv/.bootstrap/correct.01a \
-            android-tv/.bootstrap/correct.01b \
-            android-tv/.bootstrap/correct.02a \
-            android-tv/.bootstrap/correct.02b \
-            android-tv/.bootstrap/correct.03a \
-            android-tv/.bootstrap/correct.03b \
-            android-tv/.bootstrap/source.b64.04 \
-            android-tv/.bootstrap/source.b64.05 \
-            android-tv/.bootstrap/source.b64.06 \
-            > /tmp/cloud247-tv-source.b64
-          echo "af4dc5d4ea0a48e3498f71382f7afe11025fcbf58bc999b10528f0e3f10eff39  /tmp/cloud247-tv-source.b64" | sha256sum -c -
-          base64 --decode /tmp/cloud247-tv-source.b64 > /tmp/Cloud247-TV-Android-v1.0.0-source.zip
-          unzip -tq /tmp/Cloud247-TV-Android-v1.0.0-source.zip
-          rm -rf /tmp/cloud247-android-tv
-          mkdir -p /tmp/cloud247-android-tv
-          unzip -q /tmp/Cloud247-TV-Android-v1.0.0-source.zip -d /tmp/cloud247-android-tv
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -61,17 +40,17 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build debug APK
-        working-directory: /tmp/cloud247-android-tv
+        working-directory: android-tv
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp /tmp/cloud247-android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.0.0.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.1.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.0.0
-          path: Cloud247-TV-Android-v1.0.0.apk
+          name: Cloud247-TV-Android-v1.1.0
+          path: Cloud247-TV-Android-v1.1.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -79,21 +58,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view android-tv-v1.0.0 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.0.0 Cloud247-TV-Android-v1.0.0.apk --clobber
+          if gh release view android-tv-v1.1.0 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.1.0 Cloud247-TV-Android-v1.1.0.apk --clobber
           else
-            gh release create android-tv-v1.0.0 Cloud247-TV-Android-v1.0.0.apk               --title "Cloud247 TV Android v1.0.0"               --notes "Native Android TV v1.0.0. Direct M3U/M3U8 playback with Media3/ExoPlayer, groups, search, favorites, XMLTV EPG and fullscreen playback."
-          fi
-
-      - name: Expand source into repository
-        run: |
-          find android-tv -mindepth 1 -maxdepth 1 ! -name '.bootstrap' -exec rm -rf {} +
-          unzip -oq /tmp/Cloud247-TV-Android-v1.0.0-source.zip -d android-tv
-          rm -rf android-tv/.bootstrap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A android-tv
-          if ! git diff --cached --quiet; then
-            git commit -m "Add Cloud247 TV Android v1.0.0 source"
-            git push
+            gh release create android-tv-v1.1.0 Cloud247-TV-Android-v1.1.0.apk               --title "Cloud247 TV Android v1.1.0"               --notes "Android TV v1.1.0 adds QR pairing via tv.cloud247.no/link, encrypted local playlist URL storage, direct provider playback, M3U/M3U8, groups, search, favorites, XMLTV EPG and fullscreen."
           fi
