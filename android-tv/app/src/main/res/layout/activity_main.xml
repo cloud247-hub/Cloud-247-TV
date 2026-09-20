@@ -8,20 +8,45 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="82dp"
+        android:layout_height="76dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingLeft="32dp"
-        android:paddingRight="32dp"
+        android:paddingLeft="34dp"
+        android:paddingRight="34dp"
         android:background="@color/navy">
 
         <ImageView
             android:id="@+id/cloudLogo"
-            android:layout_width="220dp"
-            android:layout_height="64dp"
-            android:scaleType="centerInside"
+            android:layout_width="72dp"
+            android:layout_height="44dp"
+            android:scaleType="fitCenter"
             android:contentDescription="Cloud247"
-            android:src="@drawable/cloud247_logo" />
+            android:src="@drawable/cloud247_mark" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="14dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CLOUD247 TV"
+                android:textColor="@color/white"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DIN TV · DIN SPILLELISTE"
+                android:textColor="@color/muted"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
 
         <Space
             android:layout_width="0dp"
@@ -31,11 +56,10 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CLOUD247 TV  •  v1.1.2"
+            android:text="v1.1.3"
             android:textColor="@color/muted"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08" />
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <FrameLayout
@@ -216,7 +240,7 @@
                         android:layout_marginLeft="8dp"
                         android:background="@drawable/focus_button"
                         android:text="Åpne →"
-                        android:textColor="@color/white"
+                        android:textColor="@color/button_text"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -227,7 +251,7 @@
                         android:layout_marginLeft="8dp"
                         android:background="@drawable/focus_button"
                         android:text="M3U-fil"
-                        android:textColor="@color/white"
+                        android:textColor="@color/button_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -269,29 +293,29 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="58dp"
+                android:layout_height="70dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp">
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp">
 
                 <TextView
                     android:id="@+id/playlistTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Spilleliste"
+                    android:text="Direkte-TV"
                     android:textColor="@color/white"
-                    android:textSize="19sp"
+                    android:textSize="23sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/playlistStats"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="16dp"
+                    android:layout_marginLeft="14dp"
                     android:text="0 kanaler"
                     android:textColor="@color/muted"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
 
                 <Space
                     android:layout_width="0dp"
@@ -304,7 +328,7 @@
                     android:layout_height="46dp"
                     android:background="@drawable/focus_button"
                     android:text="EPG"
-                    android:textColor="@color/white"
+                    android:textColor="@color/button_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -315,7 +339,7 @@
                     android:layout_marginLeft="10dp"
                     android:background="@drawable/focus_button"
                     android:text="Bytt liste"
-                    android:textColor="@color/white"
+                    android:textColor="@color/button_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -327,7 +351,7 @@
                 android:orientation="horizontal">
 
                 <LinearLayout
-                    android:layout_width="250dp"
+                    android:layout_width="280dp"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:background="@drawable/panel_bg"
@@ -352,13 +376,14 @@
                         android:dividerHeight="5dp"
                         android:listSelector="@drawable/focus_list_item"
                         android:choiceMode="singleChoice"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:nextFocusRight="@id/channelList" />
                 </LinearLayout>
 
                 <LinearLayout
-                    android:layout_width="390dp"
+                    android:layout_width="470dp"
                     android:layout_height="match_parent"
-                    android:layout_marginLeft="12dp"
+                    android:layout_marginLeft="14dp"
                     android:orientation="vertical"
                     android:background="@drawable/panel_bg"
                     android:padding="12dp">
@@ -377,8 +402,9 @@
                     <EditText
                         android:id="@+id/channelSearch"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginBottom="8dp"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="10dp"
+                        android:nextFocusDown="@id/channelList"
                         android:background="@drawable/input_bg"
                         android:hint="Søk kanaler…"
                         android:singleLine="true"
@@ -394,17 +420,19 @@
                         android:divider="@android:color/transparent"
                         android:dividerHeight="5dp"
                         android:listSelector="@drawable/focus_list_item"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:nextFocusLeft="@id/groupList"
+                        android:nextFocusRight="@id/fullscreenButton" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_marginLeft="12dp"
+                    android:layout_marginLeft="14dp"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:background="@drawable/panel_bg"
-                    android:padding="12dp">
+                    android:padding="14dp">
 
                     <androidx.media3.ui.PlayerView
                         android:id="@+id/playerView"
@@ -412,10 +440,10 @@
                         android:layout_height="0dp"
                         android:layout_weight="1"
                         android:background="#02070C"
-                        android:focusable="true"
-                        android:focusableInTouchMode="true"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"
                         app:show_buffering="when_playing"
-                        app:use_controller="true" />
+                        app:use_controller="false" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -446,7 +474,7 @@
                                 android:layout_marginTop="3dp"
                                 android:text="Velg en kanal"
                                 android:textColor="@color/white"
-                                android:textSize="25sp"
+                                android:textSize="28sp"
                                 android:textStyle="bold"
                                 android:maxLines="1"
                                 android:ellipsize="end" />
@@ -469,8 +497,10 @@
                             android:layout_marginLeft="10dp"
                             android:background="@drawable/focus_button"
                             android:text="☆"
-                            android:textColor="@color/white"
-                            android:textSize="26sp" />
+                            android:textColor="@color/button_text"
+                            android:textSize="26sp"
+                            android:nextFocusLeft="@id/channelList"
+                            android:nextFocusRight="@id/fullscreenButton" />
 
                         <Button
                             android:id="@+id/fullscreenButton"
@@ -478,10 +508,11 @@
                             android:layout_height="50dp"
                             android:layout_marginLeft="10dp"
                             android:background="@drawable/focus_button"
-                            android:text="Fullskjerm"
-                            android:textColor="@color/white"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:text="SE FULLSKJERM"
+                            android:textColor="@color/button_text"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:nextFocusLeft="@id/favoriteButton" />
                     </LinearLayout>
 
                     <LinearLayout
