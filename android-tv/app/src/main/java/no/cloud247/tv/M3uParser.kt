@@ -4,18 +4,20 @@ object M3uParser {
     private val attrRegex = Regex("""([\\w-]+)=\"([^\"]*)\"""")
 
     fun parse(text: String, name: String = "Spilleliste"): Playlist {
-        val lines = text.removePrefix("\uFEFF").lineSequence().toList()
         val channels = mutableListOf<Channel>()
         var epgUrl = ""
         var pending: Pending? = null
+        var firstLine = true
 
-        val header = lines.firstOrNull()?.trim().orEmpty()
-        if (header.startsWith("#EXTM3U", ignoreCase = true)) {
-            val attrs = parseAttrs(header)
-            epgUrl = attrs["url-tvg"] ?: attrs["x-tvg-url"] ?: ""
-        }
-
-        for (raw in lines) {
+        for (raw in text.removePrefix("\uFEFF").lineSequence()) {
+            if (firstLine) {
+                firstLine = false
+                val header = raw.trim()
+                if (header.startsWith("#EXTM3U", ignoreCase = true)) {
+                    val attrs = parseAttrs(header)
+                    epgUrl = attrs["url-tvg"] ?: attrs["x-tvg-url"] ?: ""
+                }
+            }
             val line = raw.trim()
             if (line.isBlank()) continue
 
