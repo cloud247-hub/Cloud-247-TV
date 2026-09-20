@@ -25,11 +25,7 @@ jobs:
           node --check tizen-tv/vendor/qrcode.js
 
       - name: Validate config.xml
-        run: python - <<'PY'
-          import xml.etree.ElementTree as ET
-          ET.parse("tizen-tv/config.xml")
-          print("config.xml OK")
-          PY
+        run: python -c "import xml.etree.ElementTree as ET; ET.parse('tizen-tv/config.xml'); print('config.xml OK')"
 
       - name: Build source bundle
         run: |
