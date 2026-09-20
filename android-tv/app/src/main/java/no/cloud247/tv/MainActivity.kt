@@ -42,7 +42,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQUEST_M3U = 1001
         private const val REQUEST_EPG = 1002
-        private const val MAX_M3U_BYTES = 16 * 1024 * 1024
+        private const val MAX_M3U_BYTES = 64 * 1024 * 1024
         private const val MAX_EPG_BYTES = 32 * 1024 * 1024
         private const val PREFS = "cloud247_tv"
         private const val PREF_FAVORITES = "favorites"
