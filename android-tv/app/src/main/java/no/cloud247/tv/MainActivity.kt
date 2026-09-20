@@ -342,12 +342,16 @@ class MainActivity : Activity() {
     private fun renderGroups() {
         val byGroup = playlist.channels.groupingBy { it.group }.eachCount()
         val favoriteCount = playlist.channels.count { it.favoriteKey() in favorites }
+        val norwegianCount = playlist.channels.count(::isNorwegianChannel)
         val premierLeagueCount = playlist.channels.count(::isPremierLeagueChannel)
 
         val items = mutableListOf(
             GroupItem("__all__", "Alle kanaler", playlist.channels.size),
             GroupItem("__favorites__", "★ Favoritter", favoriteCount)
         )
+        if (norwegianCount > 0) {
+            items += GroupItem("__norwegian__", "Norske kanaler", norwegianCount)
+        }
         if (premierLeagueCount > 0) {
             items += GroupItem("__premier_league__", "Premier League", premierLeagueCount)
         }
@@ -363,6 +367,25 @@ class MainActivity : Activity() {
         return channel.name.trim().startsWith("EPL", ignoreCase = true)
     }
 
+    private fun isNorwegianChannel(channel: Channel): Boolean {
+        val values = listOf(channel.name, channel.tvgName, channel.group)
+            .map { it.trim().uppercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }
+
+        if (values.any { value ->
+                value.contains("NORWAY") ||
+                    value.contains("NORWEGIAN") ||
+                    value.contains("NORGE") ||
+                    Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])").containsMatchIn(value)
+            }) {
+            return true
+        }
+
+        val name = channel.name.trim().uppercase(Locale.ROOT)
+        return Regex("^(NRK(?:\\s|$)|TV\\s?2(?:\\s|$)|TVNORGE(?:\\s|$)|FEM(?:\\s|$)|MAX(?:\\s|$)|VOX(?:\\s|$)|EUROSPORT\\s+NORGE(?:\\s|$)|VISJON\\s+NORGE(?:\\s|$)|FRIKANALEN(?:\\s|$)|MATKANALEN(?:\\s|$)|HEIM(?:\\s|$)|KANAL\\s+10\\s+NORGE(?:\\s|$))")
+            .containsMatchIn(name)
+    }
+
     private fun renderChannels() {
         if (!::channelAdapter.isInitialized) return
         val query = channelSearch.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
@@ -370,6 +393,7 @@ class MainActivity : Activity() {
             val groupMatch = when (activeGroup) {
                 "__all__" -> true
                 "__favorites__" -> channel.favoriteKey() in favorites
+                "__norwegian__" -> isNorwegianChannel(channel)
                 "__premier_league__" -> isPremierLeagueChannel(channel)
                 else -> channel.group == activeGroup
             }
@@ -381,6 +405,7 @@ class MainActivity : Activity() {
         channelHeading.text = when (activeGroup) {
             "__all__" -> "ALLE KANALER"
             "__favorites__" -> "FAVORITTER"
+            "__norwegian__" -> "NORSKE KANALER"
             "__premier_league__" -> "PREMIER LEAGUE"
             else -> activeGroup.uppercase(Locale.getDefault())
         }
