@@ -1,0 +1,54 @@
+name: Check Tizen TV
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tizen-tv/**"
+      - ".github/workflows/tizen-tv.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JavaScript
+        run: |
+          node --check tizen-tv/js/app.js
+          node --check tizen-tv/vendor/qrcode.js
+
+      - name: Validate config.xml
+        run: python - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse("tizen-tv/config.xml")
+          print("config.xml OK")
+          PY
+
+      - name: Build source bundle
+        run: |
+          cd tizen-tv
+          zip -r ../Cloud247-TV-Tizen-v1.0.0-source.zip . -x "*.wgt" ".build/*" ".sign/*"
+
+      - name: Upload source bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cloud247-TV-Tizen-v1.0.0-source
+          path: Cloud247-TV-Tizen-v1.0.0-source.zip
+          retention-days: 30
+
+      - name: Publish source release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view tizen-tv-v1.0.0 >/dev/null 2>&1; then
+            gh release upload tizen-tv-v1.0.0 Cloud247-TV-Tizen-v1.0.0-source.zip --clobber
+          else
+            gh release create tizen-tv-v1.0.0 Cloud247-TV-Tizen-v1.0.0-source.zip               --title "Cloud247 TV Samsung Tizen v1.0.0"               --notes "Initial Samsung Tizen TV source release. Uses Samsung AVPlay, QR pairing, favorites, smart groups and virtualized channel lists. Build/sign the WGT with a Samsung certificate profile before installing on a TV."
+          fi
