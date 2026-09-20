@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://tv.cloud247.no/tizen"
+        version="1.0.0"
+        viewmodes="maximized">
+  <tizen:application id="c247tv0001.Cloud247TV" package="c247tv0001" required_version="2.4"/>
+  <content src="index.html"/>
+  <icon src="icon.png"/>
+  <name>Cloud247 TV</name>
+  <description>Cloud247 TV for Samsung Tizen TV</description>
+
+  <access origin="*" subdomains="true"/>
+
+  <tizen:profile name="tv"/>
+  <tizen:privilege name="http://developer.samsung.com/privilege/drmplay"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+
+  <tizen:setting
+      screen-orientation="landscape"
+      context-menu="disable"
+      background-support="disable"
+      encryption="disable"
+      install-location="auto"
+      hwkey-event="enable"
+      pointing-device-support="disable"/>
+</widget>
