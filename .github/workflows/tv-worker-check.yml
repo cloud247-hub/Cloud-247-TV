@@ -1,0 +1,26 @@
+name: Check TV Worker
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "worker/**"
+      - ".github/workflows/tv-worker-check.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: worker/package.json
+      - name: Install dependencies
+        working-directory: worker
+        run: npm install --no-audit --no-fund
+      - name: Wrangler dry run
+        working-directory: worker
+        run: npx wrangler deploy --dry-run
