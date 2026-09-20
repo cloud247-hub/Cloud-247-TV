@@ -165,16 +165,26 @@ async function fetchValidated(initialUrl, kind, env) {
 
     let response;
     try {
-      response = await fetch(current.toString(), {
+      const upstreamHeaders = new Headers({
+        'Accept': kind === 'epg'
+          ? 'application/xml,text/xml,text/plain;q=0.9,*/*;q=0.5'
+          : 'application/vnd.apple.mpegurl,application/x-mpegurl,text/plain;q=0.9,*/*;q=0.5',
+        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.1',
+      });
+      const fetchUrl = new URL(current);
+      if (fetchUrl.username || fetchUrl.password) {
+        const user = decodeURIComponent(fetchUrl.username);
+        const pass = decodeURIComponent(fetchUrl.password);
+        upstreamHeaders.set('Authorization', 'Basic ' + btoa(user + ':' + pass));
+        fetchUrl.username = '';
+        fetchUrl.password = '';
+      }
+
+      response = await fetch(fetchUrl.toString(), {
         method: 'GET',
         redirect: 'manual',
         signal: controller.signal,
-        headers: {
-          'Accept': kind === 'epg'
-            ? 'application/xml,text/xml,text/plain;q=0.9,*/*;q=0.5'
-            : 'application/vnd.apple.mpegurl,application/x-mpegurl,text/plain;q=0.9,*/*;q=0.5',
-          'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.1',
-        },
+        headers: upstreamHeaders,
         cf: {
           cacheTtl: 0,
           cacheEverything: false,
@@ -233,7 +243,9 @@ function isBlockedHost(hostname) {
   ) return true;
 
   if (host === '0.0.0.0' || host === '::' || host === '::1') return true;
-  if (isPrivateIPv4(host) || isPrivateIPv6(host)) return true;
+  if (isPrivateIPv4(host)) return true;
+  // v1.0.1 blocks IPv6 literals entirely. Hostnames with public IPv6 remain usable.
+  if (host.includes(':')) return true;
 
   return false;
 }
