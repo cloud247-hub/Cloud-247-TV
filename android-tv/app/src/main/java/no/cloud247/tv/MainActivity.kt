@@ -12,6 +12,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -37,6 +38,7 @@ import java.util.concurrent.Executors
 
 @OptIn(markerClass = [UnstableApi::class])
 class MainActivity : Activity() {
+    private val logTag = "Cloud247TV"
     companion object {
         private const val REQUEST_M3U = 1001
         private const val REQUEST_EPG = 1002
@@ -203,6 +205,7 @@ class MainActivity : Activity() {
     }
 
     private fun loadPlaylistUrl(url: String, persistOnSuccess: Boolean, savedSource: Boolean) {
+        Log.i(logTag, "playlist_load_start savedSource=$savedSource persist=$persistOnSuccess")
         setSourceLoading(true, if (savedSource) "Henter lagret spilleliste …" else "Henter spilleliste direkte fra IPTV-leverandøren …")
         executor.execute {
             try {
@@ -211,10 +214,12 @@ class MainActivity : Activity() {
                 val parsed = M3uParser.parse(text, name)
                 runOnUiThread {
                     if (persistOnSuccess) securePlaylistStore.save(url)
+                    Log.i(logTag, "playlist_load_success channels=${parsed.channels.size}")
                     playlistUrl.setText("")
                     applyPlaylist(parsed)
                 }
             } catch (error: Exception) {
+                Log.e(logTag, "playlist_load_failed: ${safeMessage(error)}")
                 runOnUiThread {
                     setSourceLoading(false, "Kunne ikke hente spillelisten: ${safeMessage(error)}")
                     if (savedSource) startPairing()
@@ -234,6 +239,7 @@ class MainActivity : Activity() {
         executor.execute {
             try {
                 val session = PairingClient.createSession()
+                Log.i(logTag, "pair_create_success code=${session.code}")
                 runOnUiThread {
                     if (generation != pairingGeneration || isFinishing) return@runOnUiThread
                     pairingSession = session
@@ -243,6 +249,7 @@ class MainActivity : Activity() {
                     pairingHandler.postDelayed({ pollPairing(generation) }, 1500)
                 }
             } catch (error: Exception) {
+                Log.e(logTag, "pair_create_failed: ${safeMessage(error)}")
                 runOnUiThread {
                     if (generation != pairingGeneration) return@runOnUiThread
                     pairingStatus.text = "Kunne ikke lage TV-kode: ${safeMessage(error)}"
@@ -257,6 +264,7 @@ class MainActivity : Activity() {
         executor.execute {
             try {
                 val pairedUrl = PairingClient.poll(session)
+                Log.d(logTag, if (pairedUrl.isNullOrBlank()) "pair_poll_pending code=${session.code}" else "pair_poll_received code=${session.code}")
                 runOnUiThread {
                     if (generation != pairingGeneration || isFinishing) return@runOnUiThread
                     if (!pairedUrl.isNullOrBlank()) {
@@ -268,6 +276,7 @@ class MainActivity : Activity() {
                     }
                 }
             } catch (error: Exception) {
+                Log.e(logTag, "pair_poll_failed: ${safeMessage(error)}")
                 runOnUiThread {
                     if (generation != pairingGeneration) return@runOnUiThread
                     pairingStatus.text = safeMessage(error)
