@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const PROXY_URL = 'https://tv-api.cloud247.no/v1/fetch';
   const state = {
     channels: [], groups: new Map(), selectedGroup: '__all__', selectedChannel: null,
@@ -63,14 +63,22 @@
   async function fetchText(url,kind='playlist'){
     const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),25000);
     try{
-      const r=await fetch(PROXY_URL,{
-        method:'POST',
-        signal:controller.signal,
-        credentials:'omit',
-        cache:'no-store',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({url,kind})
-      });
+      let r;
+      try {
+        r=await fetch(PROXY_URL,{
+          method:'POST',
+          signal:controller.signal,
+          credentials:'omit',
+          cache:'no-store',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({url,kind})
+        });
+      } catch (cause) {
+        const error=new Error('proxy_unreachable');
+        error.code='proxy_unreachable';
+        error.cause=cause;
+        throw error;
+      }
       if(!r.ok){
         let code='';
         try{code=(await r.json())?.error||'';}catch{}
@@ -80,6 +88,50 @@
       }
       return await r.text();
     } finally {clearTimeout(timer);}
+  }
+
+  function proxyErrorMessage(error){
+    const code=error?.code || error?.message || '';
+    if(code==='proxy_unreachable') return state.lang==='no'
+      ? 'Får ikke kontakt med tv-api.cloud247.no. Åpne https://tv-api.cloud247.no/health og kontroller at Workeren er deployet på Custom Domain.'
+      : 'Cannot reach tv-api.cloud247.no. Open https://tv-api.cloud247.no/health and verify that the Worker is deployed on the Custom Domain.';
+    if(code==='origin_not_allowed') return state.lang==='no'
+      ? 'Proxyen avviste Origin. Åpne appen fra https://tv.cloud247.no – ikke GitHub Pages-adressen.'
+      : 'The proxy rejected the Origin. Open the app from https://tv.cloud247.no, not the GitHub Pages URL.';
+    if(code==='invalid_url' || code==='scheme_not_allowed') return state.lang==='no'
+      ? 'IPTV-adressen er ugyldig. Kun http:// og https:// støttes.'
+      : 'The IPTV address is invalid. Only http:// and https:// are supported.';
+    if(code==='blocked_host' || code==='redirect_blocked') return state.lang==='no'
+      ? 'Proxyen blokkerte adressen av sikkerhetsgrunner fordi den peker mot et lokalt eller privat mål.'
+      : 'The proxy blocked the address for security reasons because it points to a local or private target.';
+    if(code==='port_not_allowed') return state.lang==='no'
+      ? 'IPTV-adressen bruker en port som proxyen ikke tillater ennå. Port 80, 443, 8080 og 8443 er tillatt i denne versjonen.'
+      : 'The IPTV address uses a port the proxy does not allow yet. Ports 80, 443, 8080 and 8443 are allowed in this version.';
+    if(code==='upstream_http_401') return state.lang==='no'
+      ? 'IPTV-leverandøren svarte 401. Kontroller brukernavn, passord eller token i M3U-adressen.'
+      : 'The IPTV provider returned 401. Check the username, password or token in the M3U address.';
+    if(code==='upstream_http_403') return state.lang==='no'
+      ? 'IPTV-leverandøren svarte 403. Leverandøren kan blokkere Cloudflare/IP-adressen eller kreve en annen klient.'
+      : 'The IPTV provider returned 403. The provider may block Cloudflare/IP addresses or require a different client.';
+    if(code==='upstream_http_404') return state.lang==='no'
+      ? 'IPTV-leverandøren svarte 404. M3U-adressen finnes ikke eller er utløpt.'
+      : 'The IPTV provider returned 404. The M3U address does not exist or has expired.';
+    if(code==='upstream_timeout') return state.lang==='no'
+      ? 'IPTV-leverandøren svarte ikke innen 15 sekunder.'
+      : 'The IPTV provider did not respond within 15 seconds.';
+    if(code==='upstream_fetch_failed') return state.lang==='no'
+      ? 'Cloudflare klarte ikke å koble til IPTV-leverandøren.'
+      : 'Cloudflare could not connect to the IPTV provider.';
+    if(code==='upstream_too_large') return state.lang==='no'
+      ? 'Spillelisten er større enn proxygrensen på 8 MiB.'
+      : 'The playlist is larger than the 8 MiB proxy limit.';
+    if(code==='unsupported_upstream_type') return state.lang==='no'
+      ? 'Leverandøren returnerte en innholdstype proxyen ikke godtar som M3U/XMLTV.'
+      : 'The provider returned a content type the proxy does not accept as M3U/XMLTV.';
+    if(/^upstream_http_\d+$/.test(code)) return state.lang==='no'
+      ? `IPTV-leverandøren svarte med feil ${code.replace('upstream_http_','')}.`
+      : `The IPTV provider returned error ${code.replace('upstream_http_','')}.`;
+    return t('cors');
   }
 
   function applyPlaylist(parsed,name){
@@ -193,7 +245,7 @@
   async function loadPlaylistUrl(){
     hideError(els.sourceError); const url=els.playlistUrl.value.trim(); if(!url)return; els.loadUrl.disabled=true; const old=els.loadUrl.firstElementChild?.textContent; if(els.loadUrl.firstElementChild)els.loadUrl.firstElementChild.textContent=t('loading');
     try{const text=await fetchText(url,'playlist');const parsed=parseM3U(text);applyPlaylist(parsed,hostName(url));els.playlistUrl.value='';}
-    catch(e){showError(els.sourceError,e.message===t('badPlaylist')?e.message:t('cors'));}
+    catch(e){showError(els.sourceError,e.message===t('badPlaylist')?e.message:proxyErrorMessage(e));}
     finally{els.loadUrl.disabled=false;if(els.loadUrl.firstElementChild)els.loadUrl.firstElementChild.textContent=old||t('openPlaylist');}
   }
   function hostName(url){try{return new URL(url).hostname.replace(/^www\./,'');}catch{return 'Min spilleliste';}}
@@ -236,7 +288,7 @@
   });
   els.replaceButton.addEventListener('click',()=>{destroyHls();els.video.pause();els.tvApp.hidden=true;els.welcome.hidden=false;window.scrollTo({top:0,behavior:'smooth'});});
   els.epgButton.addEventListener('click',()=>els.epgDialog.showModal());
-  els.loadEpgUrl.addEventListener('click',async()=>{hideError(els.epgError);const url=els.epgUrl.value.trim();if(!url)return;els.loadEpgUrl.disabled=true;try{await loadEpgFromText(await fetchText(url,'epg'));}catch{showError(els.epgError,t('epgFail'));}finally{els.loadEpgUrl.disabled=false;}});
+  els.loadEpgUrl.addEventListener('click',async()=>{hideError(els.epgError);const url=els.epgUrl.value.trim();if(!url)return;els.loadEpgUrl.disabled=true;try{await loadEpgFromText(await fetchText(url,'epg'));}catch(e){showError(els.epgError,proxyErrorMessage(e));}finally{els.loadEpgUrl.disabled=false;}});
   els.epgFile.addEventListener('change',async()=>{const f=els.epgFile.files?.[0];if(f)await loadEpgFromText(await f.text());els.epgFile.value='';});
   els.video.addEventListener('error',()=>showPlayerMessage(t('streamFail')));
   document.addEventListener('keydown',e=>{if(e.key==='/' && document.activeElement?.tagName!=='INPUT'){e.preventDefault();els.channelSearch.focus();}if((e.key==='f'||e.key==='F')&&state.selectedChannel&&document.activeElement?.tagName!=='INPUT'){toggleFavorite(state.selectedChannel);}});
