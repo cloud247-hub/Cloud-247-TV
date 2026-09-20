@@ -26,7 +26,6 @@ import android.widget.TextView
 import android.widget.Toast
 import java.io.ByteArrayOutputStream
 import java.net.URL
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -486,20 +485,6 @@ class MainActivity : Activity() {
         return ProgrammeWindow(current, next)
     }
 
-    private fun updateProgramme() {
-        val channel = selectedChannel ?: return
-        val window = programmeWindow(channel)
-        val time = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-        nowTitle.text = window.now?.title ?: "Ingen EPG-data"
-        nowTime.text = window.now?.let { program ->
-            val stop = program.stop?.let(time::format) ?: ""
-            if (stop.isBlank()) time.format(program.start) else "${time.format(program.start)} – $stop"
-        } ?: "—"
-        nextTitle.text = window.next?.title ?: "—"
-        nextTime.text = window.next?.let { time.format(it.start) } ?: "—"
-    }
-
     private fun openFullscreen(channel: Channel) {
         startActivity(Intent(this, FullscreenPlayerActivity::class.java).apply {
             putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
@@ -562,7 +547,7 @@ class MainActivity : Activity() {
     }
 
     private fun loadEpgFile(uri: Uri) {
-        playerStatus.text = "Leser XMLTV-fil …"
+        Toast.makeText(this, "Leser XMLTV-fil …", Toast.LENGTH_SHORT).show()
         executor.execute {
             try {
                 val bytes = readUriLimited(uri, MAX_EPG_BYTES)
