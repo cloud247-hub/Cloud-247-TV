@@ -38,7 +38,7 @@ export default {
     if (request.method === 'GET' && new URL(request.url).pathname === '/health') {
       const headers = new Headers(cors);
       headers.set('Cache-Control', 'no-store');
-      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.0.2' }, 200, headers);
+      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.0.3' }, 200, headers);
     }
 
     if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/fetch') {
@@ -96,7 +96,11 @@ export default {
       return new Response(body, { status: 200, headers });
     } catch (error) {
       const status = Number(error.status) || 502;
-      return json({ error: error.message || 'upstream_error' }, status, cors);
+      return json({
+        error: error.message || 'upstream_error',
+        detail: error.detail || undefined,
+        upstream_status: error.upstreamStatus || undefined,
+      }, status, cors);
     }
   },
 };
@@ -169,7 +173,7 @@ async function fetchValidated(initialUrl, kind, env) {
         'Accept': kind === 'epg'
           ? 'application/xml,text/xml,text/plain;q=0.9,*/*;q=0.5'
           : 'application/vnd.apple.mpegurl,application/x-mpegurl,text/plain;q=0.9,*/*;q=0.5',
-        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.2',
+        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.3',
       });
       const fetchUrl = new URL(current);
       if (fetchUrl.username || fetchUrl.password) {
@@ -218,6 +222,8 @@ async function fetchValidated(initialUrl, kind, env) {
     if (!response.ok) {
       const error = new Error('upstream_http_' + response.status);
       error.status = response.status >= 400 && response.status < 500 ? 502 : response.status;
+      error.upstreamStatus = response.status;
+      error.detail = await readErrorDetail(response);
       throw error;
     }
 
@@ -313,6 +319,55 @@ async function readLimited(stream, maxBytes) {
     offset += chunk.byteLength;
   }
   return out;
+}
+
+async function readErrorDetail(response) {
+  try {
+    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+    if (!(contentType.includes('text') || contentType.includes('json') || contentType.includes('html') || contentType.includes('xml') || !contentType)) {
+      return '';
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) return '';
+
+    let total = 0;
+    const chunks = [];
+    while (total < 2048) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const remaining = 2048 - total;
+      const part = value.byteLength > remaining ? value.slice(0, remaining) : value;
+      chunks.push(part);
+      total += part.byteLength;
+      if (total >= 2048) {
+        try { await reader.cancel(); } catch {}
+        break;
+      }
+    }
+
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    let text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    text = text
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/https?:\/\/\S+/gi, '[url]')
+      .replace(/(username|user|password|pass|token|key)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+      .replace(/[A-Za-z0-9_-]{40,}/g, '[redacted]')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return text.slice(0, 300);
+  } catch {
+    return '';
+  }
 }
 
 function json(value, status = 200, extraHeaders = {}) {
