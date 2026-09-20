@@ -396,7 +396,6 @@ class MainActivity : Activity() {
             session.player.setMediaItem(session.mediaItem)
             session.player.prepare()
             session.player.playWhenReady = true
-            playerView.requestFocus()
         } catch (error: Exception) {
             playerStatus.text = "Kunne ikke starte avspillingen: ${safeMessage(error)}"
         }
@@ -644,10 +643,30 @@ class MainActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (tvPanel.visibility == View.VISIBLE && selectedChannel != null) {
-            if (keyCode == KeyEvent.KEYCODE_CHANNEL_UP || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN) {
+        if (tvPanel.visibility == View.VISIBLE) {
+            if (selectedChannel != null &&
+                (keyCode == KeyEvent.KEYCODE_CHANNEL_UP || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN)
+            ) {
                 stepChannel(if (keyCode == KeyEvent.KEYCODE_CHANNEL_UP) -1 else 1)
                 return true
+            }
+
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                return when {
+                    favoriteButton.hasFocus() || fullscreenButton.hasFocus() -> {
+                        channelList.requestFocus()
+                        true
+                    }
+                    channelSearch.hasFocus() || channelList.hasFocus() -> {
+                        groupList.requestFocus()
+                        true
+                    }
+                    groupList.hasFocus() -> {
+                        showSourcePanel()
+                        true
+                    }
+                    else -> super.onKeyDown(keyCode, event)
+                }
             }
         }
         return super.onKeyDown(keyCode, event)
