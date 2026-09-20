@@ -1,4 +1,6 @@
 const DEFAULT_ORIGINS = ['https://tv.cloud247.no'];
+const PAIR_TTL_MS = 10 * 60 * 1000;
+const PAIR_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 const LIMITS = {
   playlist: 8 * 1024 * 1024,
@@ -38,10 +40,27 @@ export default {
     if (request.method === 'GET' && new URL(request.url).pathname === '/health') {
       const headers = new Headers(cors);
       headers.set('Cache-Control', 'no-store');
-      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.0.3' }, 200, headers);
+      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.1.0' }, 200, headers);
     }
 
-    if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/fetch') {
+    const requestUrl = new URL(request.url);
+
+    if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/create') {
+      return createPairingSession(env);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/poll') {
+      return pollPairingSession(request, env);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/submit') {
+      if (!isAllowedOrigin(origin, allowedOrigins)) {
+        return json({ error: 'origin_not_allowed' }, 403, cors);
+      }
+      return submitPairingSession(request, env, cors);
+    }
+
+    if (request.method !== 'POST' || requestUrl.pathname !== '/v1/fetch') {
       return json({ error: 'not_found' }, 404, cors);
     }
 
@@ -104,6 +123,185 @@ export default {
     }
   },
 };
+
+
+async function createPairingSession(env) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = randomPairCode();
+    const token = randomToken();
+    const expiresAt = Date.now() + PAIR_TTL_MS;
+    const stub = env.PAIRING.get(env.PAIRING.idFromName(code));
+    const response = await stub.fetch('https://pair.internal/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, expiresAt }),
+    });
+
+    if (response.status === 409) continue;
+    if (!response.ok) return json({ error: 'pair_create_failed' }, 502);
+
+    return json({
+      code,
+      token,
+      link: `https://tv.cloud247.no/link/?code=${code}`,
+      expires_in: Math.floor(PAIR_TTL_MS / 1000),
+    }, 201);
+  }
+
+  return json({ error: 'pair_code_unavailable' }, 503);
+}
+
+async function pollPairingSession(request, env) {
+  const input = await readJson(request);
+  const code = normalizePairCode(input?.code);
+  const token = typeof input?.token === 'string' ? input.token : '';
+
+  if (!code || token.length < 32) {
+    return json({ error: 'invalid_pair_request' }, 400);
+  }
+
+  const stub = env.PAIRING.get(env.PAIRING.idFromName(code));
+  const response = await stub.fetch('https://pair.internal/poll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+
+  if (response.status === 204) return new Response(null, { status: 204 });
+  const body = await response.text();
+  return new Response(body, {
+    status: response.status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
+async function submitPairingSession(request, env, cors) {
+  const input = await readJson(request);
+  const code = normalizePairCode(input?.code);
+  const playlistUrl = typeof input?.url === 'string' ? input.url.trim() : '';
+
+  if (!code || playlistUrl.length < 8 || playlistUrl.length > 4096) {
+    return json({ error: 'invalid_pair_request' }, 400, cors);
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(playlistUrl);
+  } catch {
+    return json({ error: 'invalid_url' }, 400, cors);
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    return json({ error: 'scheme_not_allowed' }, 400, cors);
+  }
+
+  const stub = env.PAIRING.get(env.PAIRING.idFromName(code));
+  const response = await stub.fetch('https://pair.internal/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: playlistUrl }),
+  });
+
+  if (response.status === 204) {
+    return new Response(null, { status: 204, headers: cors });
+  }
+
+  const payload = await response.text();
+  const headers = new Headers(cors);
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('Cache-Control', 'no-store');
+  return new Response(payload, { status: response.status, headers });
+}
+
+function randomPairCode() {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const value of bytes) out += PAIR_CODE_ALPHABET[value % PAIR_CODE_ALPHABET.length];
+  return out;
+}
+
+function randomToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function normalizePairCode(value) {
+  if (typeof value !== 'string') return '';
+  const code = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(code) ? code : '';
+}
+
+async function readJson(request) {
+  if (!request.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) return null;
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+export class PairingSession {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    const input = await readJson(request);
+    const now = Date.now();
+
+    if (path === '/create') {
+      const existingExpiry = Number(await this.state.storage.get('expiresAt') || 0);
+      if (existingExpiry > now) return json({ error: 'pair_exists' }, 409);
+
+      await this.state.storage.deleteAll();
+      const expiresAt = Number(input?.expiresAt || 0);
+      const token = typeof input?.token === 'string' ? input.token : '';
+      if (!token || expiresAt <= now) return json({ error: 'invalid_pair_session' }, 400);
+
+      await this.state.storage.put({ token, expiresAt });
+      await this.state.storage.setAlarm(expiresAt);
+      return json({ ok: true }, 201);
+    }
+
+    const expiresAt = Number(await this.state.storage.get('expiresAt') || 0);
+    if (!expiresAt || expiresAt <= now) {
+      await this.state.storage.deleteAll();
+      return json({ error: 'pair_expired' }, 410);
+    }
+
+    if (path === '/submit') {
+      const url = typeof input?.url === 'string' ? input.url : '';
+      if (!url) return json({ error: 'invalid_url' }, 400);
+      await this.state.storage.put('playlistUrl', url);
+      return new Response(null, { status: 204 });
+    }
+
+    if (path === '/poll') {
+      const expectedToken = String(await this.state.storage.get('token') || '');
+      const token = typeof input?.token === 'string' ? input.token : '';
+      if (!expectedToken || token !== expectedToken) return json({ error: 'invalid_pair_token' }, 403);
+
+      const playlistUrl = await this.state.storage.get('playlistUrl');
+      if (!playlistUrl) return new Response(null, { status: 204 });
+
+      await this.state.storage.deleteAll();
+      try { await this.state.storage.deleteAlarm(); } catch {}
+      return json({ url: playlistUrl }, 200);
+    }
+
+    return json({ error: 'not_found' }, 404);
+  }
+
+  async alarm() {
+    await this.state.storage.deleteAll();
+  }
+}
 
 function parseOrigins(value) {
   const items = (value || DEFAULT_ORIGINS.join(','))
@@ -173,7 +371,7 @@ async function fetchValidated(initialUrl, kind, env) {
         'Accept': kind === 'epg'
           ? 'application/xml,text/xml,text/plain;q=0.9,*/*;q=0.5'
           : 'application/vnd.apple.mpegurl,application/x-mpegurl,text/plain;q=0.9,*/*;q=0.5',
-        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.3',
+        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.1.0',
       });
       const fetchUrl = new URL(current);
       if (fetchUrl.username || fetchUrl.password) {
