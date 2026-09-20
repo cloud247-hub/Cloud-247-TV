@@ -31,7 +31,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CLOUD247 TV  •  v1.1.0"
+            android:text="CLOUD247 TV  •  v1.1.1"
             android:textColor="@color/muted"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -100,9 +100,9 @@
 
             <LinearLayout
                 android:layout_width="520dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="28dp"
+                android:padding="20dp"
                 android:background="@drawable/panel_bg">
 
                 <TextView
@@ -110,133 +110,153 @@
                     android:layout_height="wrap_content"
                     android:text="KOM I GANG"
                     android:textColor="@color/yellow"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.10" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Legg til TV-kilde"
+                    android:layout_marginTop="2dp"
+                    android:text="Koble til Cloud247 TV"
                     android:textColor="@color/white"
-                    android:textSize="30sp"
+                    android:textSize="27sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:text="Skann QR-koden med mobilen"
-                    android:textColor="@color/white"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <ImageView
-                    android:id="@+id/pairingQr"
-                    android:layout_width="190dp"
-                    android:layout_height="190dp"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="12dp"
-                    android:background="#FFFFFF"
-                    android:padding="8dp"
-                    android:contentDescription="QR-kode for kobling til Cloud247 TV" />
-
-                <TextView
-                    android:id="@+id/pairingCode"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:layout_marginTop="10dp"
-                    android:gravity="center"
-                    android:text="------"
-                    android:textColor="@color/yellow"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.16" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/pairingStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="Lager sikker TV-kode …"
-                    android:textColor="@color/muted"
-                    android:textSize="13sp" />
+                    <ImageView
+                        android:id="@+id/pairingQr"
+                        android:layout_width="150dp"
+                        android:layout_height="150dp"
+                        android:background="#FFFFFF"
+                        android:padding="7dp"
+                        android:contentDescription="QR-kode for kobling til Cloud247 TV" />
 
-                <Button
-                    android:id="@+id/newPairingButton"
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginLeft="18dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SKANN MED MOBILEN"
+                            android:textColor="@color/muted"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06" />
+
+                        <TextView
+                            android:id="@+id/pairingCode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="------"
+                            android:textColor="@color/yellow"
+                            android:textSize="27sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.12" />
+
+                        <TextView
+                            android:id="@+id/pairingStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="Lager sikker TV-kode …"
+                            android:textColor="@color/muted"
+                            android:textSize="13sp"
+                            android:maxLines="2" />
+
+                        <Button
+                            android:id="@+id/newPairingButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/focus_button"
+                            android:text="Lag ny QR-kode"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="50dp"
                     android:layout_marginTop="10dp"
-                    android:background="@drawable/focus_button"
-                    android:text="Lag ny QR-kode"
-                    android:textColor="@color/white"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal">
 
-                <TextView
+                    <EditText
+                        android:id="@+id/playlistUrl"
+                        android:layout_width="0dp"
+                        android:layout_height="50dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/input_bg"
+                        android:hint="M3U-adresse"
+                        android:singleLine="true"
+                        android:inputType="textUri"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/muted"
+                        android:textSize="15sp"
+                        android:selectAllOnFocus="true" />
+
+                    <Button
+                        android:id="@+id/loadPlaylistButton"
+                        android:layout_width="128dp"
+                        android:layout_height="50dp"
+                        android:layout_marginLeft="8dp"
+                        android:background="@drawable/focus_button"
+                        android:text="Åpne →"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/pickPlaylistButton"
+                        android:layout_width="104dp"
+                        android:layout_height="50dp"
+                        android:layout_marginLeft="8dp"
+                        android:background="@drawable/focus_button"
+                        android:text="M3U-fil"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:text="eller skriv inn adressen manuelt"
-                    android:textColor="@color/muted"
-                    android:textSize="13sp" />
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <EditText
-                    android:id="@+id/playlistUrl"
-                    android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:layout_marginTop="24dp"
-                    android:background="@drawable/input_bg"
-                    android:hint="M3U / M3U8-adresse"
-                    android:singleLine="true"
-                    android:inputType="textUri"
-                    android:textColor="@color/white"
-                    android:textColorHint="@color/muted"
-                    android:textSize="18sp"
-                    android:selectAllOnFocus="true" />
+                    <ProgressBar
+                        android:id="@+id/sourceProgress"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:indeterminateTint="@color/yellow"
+                        android:visibility="gone" />
 
-                <Button
-                    android:id="@+id/loadPlaylistButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:layout_marginTop="16dp"
-                    android:background="@drawable/focus_button"
-                    android:text="Åpne spilleliste  →"
-                    android:textColor="@color/white"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/pickPlaylistButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/focus_button"
-                    android:text="Velg M3U-fil"
-                    android:textColor="@color/white"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <ProgressBar
-                    android:id="@+id/sourceProgress"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="18dp"
-                    android:indeterminateTint="@color/yellow"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/sourceStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="Spillelisten lagres ikke. URL og innloggingsdetaljer beholdes kun i minnet mens appen er åpen."
-                    android:textColor="@color/muted"
-                    android:textSize="14sp"
-                    android:lineSpacingExtra="3dp" />
+                    <TextView
+                        android:id="@+id/sourceStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginLeft="8dp"
+                        android:text="QR er enklest. M3U-adressen lagres kryptert lokalt på TV-en etter vellykket tilkobling."
+                        android:textColor="@color/muted"
+                        android:textSize="12sp"
+                        android:maxLines="2" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
