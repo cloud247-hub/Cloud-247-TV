@@ -13,22 +13,49 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         app:show_buffering="when_playing"
-        app:use_controller="true" />
+        app:use_controller="false" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/fullscreenOverlay"
+        android:layout_width="560dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
+        android:layout_gravity="top|start"
+        android:layout_marginLeft="34dp"
+        android:layout_marginTop="30dp"
         android:orientation="vertical"
-        android:padding="28dp"
-        android:background="#88061A2F">
+        android:background="@drawable/fullscreen_overlay_bg">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="50dp"
+                android:layout_height="32dp"
+                android:src="@drawable/cloud247_mark"
+                android:contentDescription="Cloud247"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/fullscreenClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="12dp"
+                android:text="20:00"
+                android:textColor="@color/muted"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/fullscreenName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:textColor="@color/white"
-            android:textSize="24sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end" />
@@ -38,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Tilbake for å gå tilbake til kanaloversikten"
+            android:text="OK viser info · Tilbake går til kanaloversikten"
             android:textColor="@color/muted"
             android:textSize="14sp" />
     </LinearLayout>
