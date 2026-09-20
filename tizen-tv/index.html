@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920,height=1080,initial-scale=1.0,user-scalable=no">
+  <title>Cloud247 TV</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="text/javascript" src="$WEBAPIS/webapis/webapis.js"></script>
+  <script type="text/javascript" src="vendor/qrcode.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="cloud-mark" aria-hidden="true">
+        <span class="cloud"></span><span class="speed a"></span><span class="speed b"></span><span class="speed c"></span>
+      </div>
+      <div class="brand-copy">
+        <strong>CLOUD247 TV</strong>
+        <span>DIN TV · DIN SPILLELISTE</span>
+      </div>
+    </div>
+    <div class="version">SAMSUNG TV · v1.0.0</div>
+  </header>
+
+  <main id="setupScreen" class="screen setup-screen">
+    <section class="setup-copy">
+      <p class="eyebrow">SAMSUNG TV · TIZEN</p>
+      <h1>TV uten<br><span>unødvendig støy.</span></h1>
+      <p>Skann QR-koden med mobilen og legg inn M3U-adressen én gang. TV-en henter spillelisten direkte fra leverandøren og lagrer adressen lokalt.</p>
+      <div class="feature-line">● AVPlay &nbsp; · &nbsp; M3U / M3U8 &nbsp; · &nbsp; Favoritter &nbsp; · &nbsp; Smarte grupper</div>
+    </section>
+
+    <section class="pair-card">
+      <p class="eyebrow dark">KOM I GANG</p>
+      <h2>Koble til Cloud247 TV</h2>
+      <div class="pair-main">
+        <div id="qrCode" class="qr-box"><div class="qr-placeholder">QR</div></div>
+        <div class="pair-info">
+          <span class="pair-label">TV-KODE</span>
+          <strong id="pairCode">------</strong>
+          <p id="pairStatus">Lager sikker TV-kode …</p>
+          <button id="newPairButton" class="focusable" data-action="new-pair">Lag ny QR-kode</button>
+        </div>
+      </div>
+      <div class="manual-link">Mobil: <strong>tv.cloud247.no/link</strong></div>
+    </section>
+  </main>
+
+  <main id="browseScreen" class="screen browse-screen hidden">
+    <section class="browse-meta">
+      <div>
+        <strong id="playlistName">Spilleliste</strong>
+        <span id="playlistStats">0 kanaler</span>
+        <span class="remote-help">OK: se kanal &nbsp; · &nbsp; Hold OK: favoritt</span>
+      </div>
+      <button id="changeListButton" class="top-action focusable" data-action="change-list">Bytt liste</button>
+    </section>
+
+    <section class="browser-grid">
+      <aside class="panel groups-panel">
+        <div class="panel-heading">GRUPPER</div>
+        <div id="groupList" class="virtual-list"></div>
+      </aside>
+
+      <section class="panel channels-panel">
+        <div class="panel-heading">
+          <span id="channelHeading">ALLE KANALER</span>
+          <span id="channelCount">0</span>
+        </div>
+        <div id="channelList" class="virtual-list channel-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <section id="playerScreen" class="player-screen hidden">
+    <object id="avPlayer" type="application/avplayer"></object>
+    <div id="playerOverlay" class="player-overlay">
+      <div class="overlay-brand">
+        <div class="cloud-mark small" aria-hidden="true"><span class="cloud"></span></div>
+        <span id="playerClock">20:00</span>
+      </div>
+      <strong id="playerChannel">Kanal</strong>
+      <span>OK viser info · Tilbake går til kanaloversikten</span>
+    </div>
+    <div id="playerError" class="player-error hidden"></div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
