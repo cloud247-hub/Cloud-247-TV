@@ -31,7 +31,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CLOUD247 TV  •  v1.0.0"
+            android:text="CLOUD247 TV  •  v1.1.0"
             android:textColor="@color/muted"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -122,6 +122,66 @@
                     android:textColor="@color/white"
                     android:textSize="30sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="Skann QR-koden med mobilen"
+                    android:textColor="@color/white"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/pairingQr"
+                    android:layout_width="190dp"
+                    android:layout_height="190dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:background="#FFFFFF"
+                    android:padding="8dp"
+                    android:contentDescription="QR-kode for kobling til Cloud247 TV" />
+
+                <TextView
+                    android:id="@+id/pairingCode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="------"
+                    android:textColor="@color/yellow"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.16" />
+
+                <TextView
+                    android:id="@+id/pairingStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Lager sikker TV-kode …"
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/newPairingButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/focus_button"
+                    android:text="Lag ny QR-kode"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:text="eller skriv inn adressen manuelt"
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
 
                 <EditText
                     android:id="@+id/playlistUrl"
