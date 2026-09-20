@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const PROXY_URL = 'https://tv-api.cloud247.no/v1/fetch';
   const state = {
     channels: [], groups: new Map(), selectedGroup: '__all__', selectedChannel: null,
@@ -80,10 +80,14 @@
         throw error;
       }
       if(!r.ok){
-        let code='';
-        try{code=(await r.json())?.error||'';}catch{}
+        let payload={};
+        try{payload=await r.json();}catch{}
+        const code=payload?.error||'';
         const error=new Error(code||`HTTP ${r.status}`);
-        error.code=code; error.status=r.status;
+        error.code=code;
+        error.status=r.status;
+        error.detail=typeof payload?.detail==='string' ? payload.detail : '';
+        error.upstreamStatus=payload?.upstream_status;
         throw error;
       }
       return await r.text();
@@ -128,9 +132,13 @@
     if(code==='unsupported_upstream_type') return state.lang==='no'
       ? 'Leverandøren returnerte en innholdstype proxyen ikke godtar som M3U/XMLTV.'
       : 'The provider returned a content type the proxy does not accept as M3U/XMLTV.';
-    if(/^upstream_http_\d+$/.test(code)) return state.lang==='no'
-      ? `IPTV-leverandøren svarte med feil ${code.replace('upstream_http_','')}.`
-      : `The IPTV provider returned error ${code.replace('upstream_http_','')}.`;
+    if(/^upstream_http_\d+$/.test(code)){
+      const status=code.replace('upstream_http_','');
+      const base=state.lang==='no'
+        ? `IPTV-leverandøren svarte med egendefinert feil ${status}.`
+        : `The IPTV provider returned custom error ${status}.`;
+      return error?.detail ? `${base} Detalj: ${error.detail}` : base;
+    }
     return t('cors');
   }
 
