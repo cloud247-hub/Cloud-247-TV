@@ -1,0 +1,19 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#061A2F" />
+        </shape>
+    </item>
+    <item
+        android:width="235dp"
+        android:height="165dp"
+        android:gravity="center_vertical|left"
+        android:left="18dp"
+        android:drawable="@drawable/cloud247_logo" />
+    <item
+        android:width="44dp"
+        android:height="30dp"
+        android:gravity="center_vertical|right"
+        android:right="20dp"
+        android:drawable="@drawable/tv_mark" />
+</layer-list>
