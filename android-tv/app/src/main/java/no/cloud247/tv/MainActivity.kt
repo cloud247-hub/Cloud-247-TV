@@ -24,10 +24,6 @@ import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import java.io.ByteArrayOutputStream
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -70,16 +66,6 @@ class MainActivity : Activity() {
     private lateinit var channelList: ListView
     private lateinit var channelSearch: EditText
     private lateinit var channelHeading: TextView
-    private lateinit var playerView: PlayerView
-    private lateinit var currentChannel: TextView
-    private lateinit var currentGroup: TextView
-    private lateinit var favoriteButton: Button
-    private lateinit var fullscreenButton: Button
-    private lateinit var nowTitle: TextView
-    private lateinit var nowTime: TextView
-    private lateinit var nextTitle: TextView
-    private lateinit var nextTime: TextView
-    private lateinit var playerStatus: TextView
 
     private lateinit var groupAdapter: GroupAdapter
     private lateinit var channelAdapter: ChannelAdapter
@@ -88,11 +74,12 @@ class MainActivity : Activity() {
     private var epgData = EpgData.EMPTY
     private var activeGroup = "__all__"
     private var selectedChannel: Channel? = null
-    private var player: ExoPlayer? = null
     private val pairingHandler = Handler(Looper.getMainLooper())
     private val securePlaylistStore by lazy { SecurePlaylistStore(this) }
     private var pairingSession: PairingSession? = null
     private var pairingGeneration = 0
+    private val favoriteHoldHandler = Handler(Looper.getMainLooper())
+    private var favoriteHoldTriggered = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,16 +118,6 @@ class MainActivity : Activity() {
         channelList = findViewById(R.id.channelList)
         channelSearch = findViewById(R.id.channelSearch)
         channelHeading = findViewById(R.id.channelHeading)
-        playerView = findViewById(R.id.playerView)
-        currentChannel = findViewById(R.id.currentChannel)
-        currentGroup = findViewById(R.id.currentGroup)
-        favoriteButton = findViewById(R.id.favoriteButton)
-        fullscreenButton = findViewById(R.id.fullscreenButton)
-        nowTitle = findViewById(R.id.nowTitle)
-        nowTime = findViewById(R.id.nowTime)
-        nextTitle = findViewById(R.id.nextTitle)
-        nextTime = findViewById(R.id.nextTime)
-        playerStatus = findViewById(R.id.playerStatus)
     }
 
     private fun configureLists() {
@@ -159,11 +136,59 @@ class MainActivity : Activity() {
             groupAdapter.activeKey = activeGroup
             channelSearch.setText("")
             renderChannels()
-            channelList.requestFocus()
+            if (channelAdapter.count > 0) {
+                channelList.setSelection(0)
+                channelList.requestFocus()
+            }
         }
 
         channelList.setOnItemClickListener { _, _, position, _ ->
-            selectChannel(channelAdapter.getItem(position))
+            val channel = channelAdapter.getItem(position)
+            selectChannel(channel)
+            openFullscreen(channel)
+        }
+
+        channelList.setOnKeyListener { _, keyCode, event ->
+            if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER && keyCode != KeyEvent.KEYCODE_ENTER) {
+                return@setOnKeyListener false
+            }
+
+            val position = channelList.selectedItemPosition
+            if (position < 0 || position >= channelAdapter.count) return@setOnKeyListener true
+            val channel = channelAdapter.getItem(position)
+
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> {
+                    if (event.repeatCount == 0) {
+                        favoriteHoldTriggered = false
+                        selectChannel(channel)
+                        favoriteHoldHandler.removeCallbacksAndMessages(null)
+                        favoriteHoldHandler.postDelayed({
+                            if (channelList.hasFocus()) {
+                                favoriteHoldTriggered = true
+                                toggleFavorite(channel)
+                                val isFavorite = channel.favoriteKey() in favorites
+                                Toast.makeText(
+                                    this,
+                                    if (isFavorite) "★ Lagt til i Favoritter" else "Fjernet fra Favoritter",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }, 650L)
+                    }
+                    true
+                }
+                KeyEvent.ACTION_UP -> {
+                    favoriteHoldHandler.removeCallbacksAndMessages(null)
+                    if (!favoriteHoldTriggered) {
+                        selectChannel(channel)
+                        openFullscreen(channel)
+                    }
+                    favoriteHoldTriggered = false
+                    true
+                }
+                else -> true
+            }
         }
     }
 
@@ -181,8 +206,6 @@ class MainActivity : Activity() {
         pickPlaylistButton.setOnClickListener { pickFile(REQUEST_M3U, arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain", "*/*")) }
         epgButton.setOnClickListener { showEpgDialog() }
         changePlaylistButton.setOnClickListener { showSourcePanel() }
-        favoriteButton.setOnClickListener { selectedChannel?.let(::toggleFavorite) }
-        fullscreenButton.setOnClickListener { openFullscreen() }
 
         channelSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -301,7 +324,6 @@ class MainActivity : Activity() {
         }
 
         stopPairing()
-        releasePlayer()
         playlist = parsed
         epgData = EpgData.EMPTY
         activeGroup = "__all__"
@@ -309,14 +331,6 @@ class MainActivity : Activity() {
         channelSearch.setText("")
         playlistTitle.text = parsed.name
         playlistStats.text = "${parsed.channels.size} kanaler"
-        currentChannel.text = "Velg en kanal"
-        currentGroup.text = "—"
-        nowTitle.text = "Ingen EPG lastet"
-        nowTime.text = "—"
-        nextTitle.text = "—"
-        nextTime.text = "—"
-        favoriteButton.text = "☆"
-        playerStatus.text = "Android TV spiller streamen direkte uten nettleser-CORS."
 
         renderGroups()
         renderChannels()
@@ -329,15 +343,25 @@ class MainActivity : Activity() {
     private fun renderGroups() {
         val byGroup = playlist.channels.groupingBy { it.group }.eachCount()
         val favoriteCount = playlist.channels.count { it.favoriteKey() in favorites }
+        val premierLeagueCount = playlist.channels.count(::isPremierLeagueChannel)
+
         val items = mutableListOf(
             GroupItem("__all__", "Alle kanaler", playlist.channels.size),
             GroupItem("__favorites__", "★ Favoritter", favoriteCount)
         )
+        if (premierLeagueCount > 0) {
+            items += GroupItem("__premier_league__", "Premier League", premierLeagueCount)
+        }
+
         byGroup.toSortedMap(String.CASE_INSENSITIVE_ORDER).forEach { (group, count) ->
             items += GroupItem(group, group, count)
         }
         groupAdapter.activeKey = activeGroup
         groupAdapter.setItems(items)
+    }
+
+    private fun isPremierLeagueChannel(channel: Channel): Boolean {
+        return channel.name.trim().startsWith("EPL", ignoreCase = true)
     }
 
     private fun renderChannels() {
@@ -347,6 +371,7 @@ class MainActivity : Activity() {
             val groupMatch = when (activeGroup) {
                 "__all__" -> true
                 "__favorites__" -> channel.favoriteKey() in favorites
+                "__premier_league__" -> isPremierLeagueChannel(channel)
                 else -> channel.group == activeGroup
             }
             val searchMatch = query.isBlank() || listOf(channel.name, channel.tvgName, channel.group)
@@ -357,6 +382,7 @@ class MainActivity : Activity() {
         channelHeading.text = when (activeGroup) {
             "__all__" -> "ALLE KANALER"
             "__favorites__" -> "FAVORITTER"
+            "__premier_league__" -> "PREMIER LEAGUE"
             else -> activeGroup.uppercase(Locale.getDefault())
         }
         channelAdapter.activeChannel = selectedChannel
@@ -365,54 +391,15 @@ class MainActivity : Activity() {
 
     private fun selectChannel(channel: Channel) {
         selectedChannel = channel
-        currentChannel.text = channel.name
-        currentGroup.text = channel.group
-        updateFavoriteButton()
-        updateProgramme()
         channelAdapter.activeChannel = channel
-        startPlayback(channel)
-    }
-
-    private fun startPlayback(channel: Channel) {
-        releasePlayer()
-        playerStatus.text = "Kobler til IPTV-leverandøren …"
-        try {
-            val session = PlayerFactory.create(this, channel.url)
-            player = session.player
-            playerView.player = session.player
-            session.player.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    when (playbackState) {
-                        Player.STATE_BUFFERING -> playerStatus.text = "Laster stream …"
-                        Player.STATE_READY -> playerStatus.text = "Direkte stream • ingen nettleser-CORS"
-                        Player.STATE_ENDED -> playerStatus.text = "Streamen er avsluttet."
-                    }
-                }
-
-                override fun onPlayerError(error: PlaybackException) {
-                    playerStatus.text = "Kanalen kunne ikke spilles: ${error.errorCodeName}"
-                }
-            })
-            session.player.setMediaItem(session.mediaItem)
-            session.player.prepare()
-            session.player.playWhenReady = true
-        } catch (error: Exception) {
-            playerStatus.text = "Kunne ikke starte avspillingen: ${safeMessage(error)}"
-        }
     }
 
     private fun toggleFavorite(channel: Channel) {
         val key = channel.favoriteKey()
         if (key in favorites) favorites.remove(key) else favorites.add(key)
         saveFavorites()
-        updateFavoriteButton()
         renderGroups()
         renderChannels()
-    }
-
-    private fun updateFavoriteButton() {
-        val selected = selectedChannel
-        favoriteButton.text = if (selected != null && selected.favoriteKey() in favorites) "★" else "☆"
     }
 
     private fun showEpgDialog() {
@@ -445,14 +432,14 @@ class MainActivity : Activity() {
     }
 
     private fun loadEpgFromUrl(url: String) {
-        playerStatus.text = "Laster XMLTV / EPG …"
+        Toast.makeText(this, "Laster XMLTV / EPG …", Toast.LENGTH_SHORT).show()
         executor.execute {
             try {
                 val bytes = NetworkClient.fetchBytes(url, MAX_EPG_BYTES)
                 val parsed = XmlTvParser.parse(bytes, playlist.channels)
                 runOnUiThread { applyEpg(parsed) }
             } catch (error: Exception) {
-                runOnUiThread { playerStatus.text = "Kunne ikke laste EPG: ${safeMessage(error)}" }
+                runOnUiThread { Toast.makeText(this, "Kunne ikke laste EPG: ${safeMessage(error)}", Toast.LENGTH_LONG).show() }
             }
         }
     }
@@ -460,9 +447,12 @@ class MainActivity : Activity() {
     private fun applyEpg(data: EpgData) {
         epgData = data
         val count = data.programsById.size
-        playerStatus.text = if (count > 0) "EPG lastet for $count kanaler." else "EPG lastet, men fant ingen matchende kanal-ID-er."
+        Toast.makeText(
+            this,
+            if (count > 0) "EPG lastet for $count kanaler." else "EPG lastet, men fant ingen matchende kanal-ID-er.",
+            Toast.LENGTH_SHORT
+        ).show()
         renderChannels()
-        updateProgramme()
     }
 
     private fun programmeWindow(channel: Channel): ProgrammeWindow {
@@ -510,12 +500,7 @@ class MainActivity : Activity() {
         nextTime.text = window.next?.let { time.format(it.start) } ?: "—"
     }
 
-    private fun openFullscreen() {
-        val channel = selectedChannel ?: run {
-            playerStatus.text = "Velg en kanal først."
-            return
-        }
-        player?.pause()
+    private fun openFullscreen(channel: Channel) {
         startActivity(Intent(this, FullscreenPlayerActivity::class.java).apply {
             putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
             putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
@@ -523,7 +508,6 @@ class MainActivity : Activity() {
     }
 
     private fun showSourcePanel() {
-        releasePlayer()
         tvPanel.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
         sourceStatus.text = "Skann QR-koden med mobilen, eller skriv inn M3U-adressen manuelt."
@@ -585,7 +569,7 @@ class MainActivity : Activity() {
                 val parsed = XmlTvParser.parse(bytes, playlist.channels)
                 runOnUiThread { applyEpg(parsed) }
             } catch (error: Exception) {
-                runOnUiThread { playerStatus.text = "Kunne ikke lese XMLTV-filen: ${safeMessage(error)}" }
+                runOnUiThread { Toast.makeText(this, "Kunne ikke lese XMLTV-filen: ${safeMessage(error)}", Toast.LENGTH_LONG).show() }
             }
         }
     }
@@ -624,61 +608,28 @@ class MainActivity : Activity() {
         return error.message?.take(140)?.replace(Regex("https?://\\S+"), "[adresse]") ?: "Ukjent feil"
     }
 
-    private fun releasePlayer() {
-        playerView.player = null
-        player?.release()
-        player = null
-    }
-
-    override fun onStop() {
-        super.onStop()
-        player?.pause()
-    }
-
     override fun onDestroy() {
         stopPairing()
-        releasePlayer()
+        favoriteHoldHandler.removeCallbacksAndMessages(null)
         executor.shutdownNow()
         super.onDestroy()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (tvPanel.visibility == View.VISIBLE) {
-            if (selectedChannel != null &&
-                (keyCode == KeyEvent.KEYCODE_CHANNEL_UP || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN)
-            ) {
-                stepChannel(if (keyCode == KeyEvent.KEYCODE_CHANNEL_UP) -1 else 1)
-                return true
-            }
-
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                return when {
-                    favoriteButton.hasFocus() || fullscreenButton.hasFocus() -> {
-                        channelList.requestFocus()
-                        true
-                    }
-                    channelSearch.hasFocus() || channelList.hasFocus() -> {
-                        groupList.requestFocus()
-                        true
-                    }
-                    groupList.hasFocus() -> {
-                        showSourcePanel()
-                        true
-                    }
-                    else -> super.onKeyDown(keyCode, event)
+        if (tvPanel.visibility == View.VISIBLE && keyCode == KeyEvent.KEYCODE_BACK) {
+            return when {
+                channelSearch.hasFocus() || channelList.hasFocus() -> {
+                    groupList.requestFocus()
+                    true
                 }
+                groupList.hasFocus() -> {
+                    showSourcePanel()
+                    true
+                }
+                else -> super.onKeyDown(keyCode, event)
             }
         }
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun stepChannel(direction: Int) {
-        if (channelAdapter.count == 0) return
-        val selected = selectedChannel
-        val currentIndex = (0 until channelAdapter.count).firstOrNull { channelAdapter.getItem(it) == selected } ?: 0
-        val nextIndex = (currentIndex + direction).coerceIn(0, channelAdapter.count - 1)
-        val channel = channelAdapter.getItem(nextIndex)
-        channelList.setSelection(nextIndex)
-        selectChannel(channel)
-    }
 }
