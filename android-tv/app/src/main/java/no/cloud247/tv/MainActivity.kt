@@ -7,6 +7,8 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -15,6 +17,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
@@ -49,6 +52,10 @@ class MainActivity : Activity() {
     private lateinit var sourcePanel: LinearLayout
     private lateinit var tvPanel: LinearLayout
     private lateinit var playlistUrl: EditText
+    private lateinit var pairingQr: ImageView
+    private lateinit var pairingCode: TextView
+    private lateinit var pairingStatus: TextView
+    private lateinit var newPairingButton: Button
     private lateinit var loadPlaylistButton: Button
     private lateinit var pickPlaylistButton: Button
     private lateinit var sourceProgress: ProgressBar
@@ -80,6 +87,10 @@ class MainActivity : Activity() {
     private var activeGroup = "__all__"
     private var selectedChannel: Channel? = null
     private var player: ExoPlayer? = null
+    private val pairingHandler = Handler(Looper.getMainLooper())
+    private val securePlaylistStore by lazy { SecurePlaylistStore(this) }
+    private var pairingSession: PairingSession? = null
+    private var pairingGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,13 +99,24 @@ class MainActivity : Activity() {
         loadFavorites()
         configureLists()
         configureActions()
-        playlistUrl.requestFocus()
+
+        val savedUrl = securePlaylistStore.load()
+        if (!savedUrl.isNullOrBlank()) {
+            loadPlaylistUrl(savedUrl, persistOnSuccess = false, savedSource = true)
+        } else {
+            startPairing()
+            newPairingButton.requestFocus()
+        }
     }
 
     private fun bindViews() {
         sourcePanel = findViewById(R.id.sourcePanel)
         tvPanel = findViewById(R.id.tvPanel)
         playlistUrl = findViewById(R.id.playlistUrl)
+        pairingQr = findViewById(R.id.pairingQr)
+        pairingCode = findViewById(R.id.pairingCode)
+        pairingStatus = findViewById(R.id.pairingStatus)
+        newPairingButton = findViewById(R.id.newPairingButton)
         loadPlaylistButton = findViewById(R.id.loadPlaylistButton)
         pickPlaylistButton = findViewById(R.id.pickPlaylistButton)
         sourceProgress = findViewById(R.id.sourceProgress)
@@ -145,6 +167,7 @@ class MainActivity : Activity() {
 
     private fun configureActions() {
         loadPlaylistButton.setOnClickListener { loadPlaylistFromUrl() }
+        newPairingButton.setOnClickListener { startPairing() }
         playlistUrl.setOnEditorActionListener { _, actionId, event ->
             val submit = actionId == EditorInfo.IME_ACTION_GO ||
                 actionId == EditorInfo.IME_ACTION_DONE ||
@@ -176,23 +199,90 @@ class MainActivity : Activity() {
             sourceStatus.text = "Kun http:// og https:// støttes."
             return
         }
+        loadPlaylistUrl(url, persistOnSuccess = true, savedSource = false)
+    }
 
-        setSourceLoading(true, "Henter spilleliste direkte fra IPTV-leverandøren …")
+    private fun loadPlaylistUrl(url: String, persistOnSuccess: Boolean, savedSource: Boolean) {
+        setSourceLoading(true, if (savedSource) "Henter lagret spilleliste …" else "Henter spilleliste direkte fra IPTV-leverandøren …")
         executor.execute {
             try {
                 val text = NetworkClient.fetchText(url, MAX_M3U_BYTES)
                 val name = try { URL(url).host.removePrefix("www.") } catch (_: Exception) { "Spilleliste" }
                 val parsed = M3uParser.parse(text, name)
                 runOnUiThread {
+                    if (persistOnSuccess) securePlaylistStore.save(url)
                     playlistUrl.setText("")
                     applyPlaylist(parsed)
                 }
             } catch (error: Exception) {
                 runOnUiThread {
                     setSourceLoading(false, "Kunne ikke hente spillelisten: ${safeMessage(error)}")
+                    if (savedSource) startPairing()
                 }
             }
         }
+    }
+
+    private fun startPairing() {
+        val generation = ++pairingGeneration
+        pairingSession = null
+        pairingHandler.removeCallbacksAndMessages(null)
+        pairingQr.setImageDrawable(null)
+        pairingCode.text = "------"
+        pairingStatus.text = "Lager sikker TV-kode …"
+
+        executor.execute {
+            try {
+                val session = PairingClient.createSession()
+                runOnUiThread {
+                    if (generation != pairingGeneration || isFinishing) return@runOnUiThread
+                    pairingSession = session
+                    pairingCode.text = session.code
+                    pairingQr.setImageBitmap(QrCodeRenderer.render(session.link, 320))
+                    pairingStatus.text = "Skann QR-koden eller gå til tv.cloud247.no/link"
+                    pairingHandler.postDelayed({ pollPairing(generation) }, 1500)
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    if (generation != pairingGeneration) return@runOnUiThread
+                    pairingStatus.text = "Kunne ikke lage TV-kode: ${safeMessage(error)}"
+                }
+            }
+        }
+    }
+
+    private fun pollPairing(generation: Int) {
+        if (generation != pairingGeneration) return
+        val session = pairingSession ?: return
+        executor.execute {
+            try {
+                val pairedUrl = PairingClient.poll(session)
+                runOnUiThread {
+                    if (generation != pairingGeneration || isFinishing) return@runOnUiThread
+                    if (!pairedUrl.isNullOrBlank()) {
+                        pairingStatus.text = "Spilleliste mottatt. Kobler til …"
+                        stopPairing()
+                        loadPlaylistUrl(pairedUrl, persistOnSuccess = true, savedSource = false)
+                    } else {
+                        pairingHandler.postDelayed({ pollPairing(generation) }, 2500)
+                    }
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    if (generation != pairingGeneration) return@runOnUiThread
+                    pairingStatus.text = safeMessage(error)
+                    if (error !is PairingException || !safeMessage(error).contains("utløpt", true)) {
+                        pairingHandler.postDelayed({ pollPairing(generation) }, 4000)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopPairing() {
+        pairingGeneration += 1
+        pairingSession = null
+        pairingHandler.removeCallbacksAndMessages(null)
     }
 
     private fun applyPlaylist(parsed: Playlist) {
@@ -201,6 +291,7 @@ class MainActivity : Activity() {
             return
         }
 
+        stopPairing()
         releasePlayer()
         playlist = parsed
         epgData = EpgData.EMPTY
@@ -427,8 +518,9 @@ class MainActivity : Activity() {
         releasePlayer()
         tvPanel.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
-        sourceStatus.text = "Spillelisten lagres ikke. URL og innloggingsdetaljer beholdes kun i minnet mens appen er åpen."
-        playlistUrl.requestFocus()
+        sourceStatus.text = "Skann QR-koden med mobilen, eller skriv inn M3U-adressen manuelt."
+        startPairing()
+        newPairingButton.requestFocus()
     }
 
     private fun setSourceLoading(loading: Boolean, message: String) {
@@ -536,6 +628,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        stopPairing()
         releasePlayer()
         executor.shutdownNow()
         super.onDestroy()
