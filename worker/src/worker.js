@@ -46,10 +46,12 @@ export default {
     const requestUrl = new URL(request.url);
 
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/create') {
+      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403);
       return createPairingSession(env);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/poll') {
+      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403);
       return pollPairingSession(request, env);
     }
 
@@ -301,6 +303,10 @@ export class PairingSession {
   async alarm() {
     await this.state.storage.deleteAll();
   }
+}
+
+function isTvClient(request) {
+  return (request.headers.get('User-Agent') || '').startsWith('Cloud247-TV/');
 }
 
 function parseOrigins(value) {
