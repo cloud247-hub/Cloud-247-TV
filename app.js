@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
+  const PROXY_URL = 'https://tv-api.cloud247.no/v1/fetch';
   const state = {
     channels: [], groups: new Map(), selectedGroup: '__all__', selectedChannel: null,
     favorites: new Set(loadJson('cloud247tv:favorites', [])), epg: new Map(), hls: null,
@@ -21,8 +22,8 @@
   };
 
   const i18n = {
-    no: {eyebrow:'DIN SPILLELISTE · DIN TV',hero1:'TV uten',hero2:'unødvendig støy',lead:'Legg inn din egen M3U-liste og få et ryddig kanalgrensesnitt med favoritter, grupper og programoversikt.',tagLocal:'Spillelisten lagres ikke',tagEpg:'XMLTV / EPG',tagHls:'HLS-avspilling',start:'KOM I GANG',sourceTitle:'Legg til TV-kilde',urlTab:'M3U-adresse',fileTab:'M3U-fil',m3uAddress:'M3U / M3U8-adresse',openPlaylist:'Åpne spilleliste',chooseFile:'Velg M3U-fil',chooseFileHelp:'eller slipp filen her',privacy:'Kilden behandles i nettleseren. Cloud247 lagrer ikke spillelisten eller innloggingsdetaljer.',epgButton:'EPG',replace:'Bytt liste',groups:'GRUPPER',allChannels:'ALLE KANALER',channels:'Kanaler',search:'Søk kanaler',searchPlaceholder:'Søk kanaler…',noChannels:'Ingen kanaler funnet',trySearch:'Prøv et annet søk eller en annen gruppe.',pickChannel:'Velg en kanal',pickChannelHelp:'Avspillingen starter her.',nowWatching:'SER PÅ',nothingSelected:'Ingen kanal valgt',now:'NÅ',next:'NESTE',noEpg:'Ingen EPG lastet',playerHelp:'Noen IPTV-kilder blokkerer nettlesere med CORS eller bruker kodeker nettleseren ikke støtter.',epgTitle:'Programguide',epgIntro:'Legg til XMLTV fra en URL eller fil. Guiden brukes kun i denne fanen.',epgUrl:'XMLTV-adresse',loadEpg:'Last EPG',chooseXml:'Velg XMLTV-fil',favorites:'Favoritter',all:'Alle kanaler',other:'Andre',channelsWord:'kanaler',loading:'Laster…',cors:'Kunne ikke hente adressen. IPTV-leverandøren kan blokkere nettleseren med CORS.',badPlaylist:'Fant ingen kanaler i spillelisten.',fileError:'Kunne ikke lese filen.',epgLoaded:'EPG lastet',epgFail:'Kunne ikke lese XMLTV-guiden.',streamFail:'Kanalen kunne ikke spilles i nettleseren. Det kan skyldes CORS, HTTP/HTTPS eller et kodekformat som ikke støttes.',hlsMissing:'HLS-avspiller kunne ikke lastes. Kontroller internettforbindelsen eller Content Security Policy.',favoriteAdded:'Lagt til i favoritter',favoriteRemoved:'Fjernet fra favoritter',listLoaded:'Spilleliste lastet'},
-    en: {eyebrow:'YOUR PLAYLIST · YOUR TV',hero1:'TV without',hero2:'unnecessary noise',lead:'Add your own M3U playlist and get a clean channel interface with favourites, groups and programme information.',tagLocal:'Playlist is not stored',tagEpg:'XMLTV / EPG',tagHls:'HLS playback',start:'GET STARTED',sourceTitle:'Add TV source',urlTab:'M3U address',fileTab:'M3U file',m3uAddress:'M3U / M3U8 address',openPlaylist:'Open playlist',chooseFile:'Choose M3U file',chooseFileHelp:'or drop the file here',privacy:'The source is processed in your browser. Cloud247 does not store the playlist or login details.',epgButton:'EPG',replace:'Replace list',groups:'GROUPS',allChannels:'ALL CHANNELS',channels:'Channels',search:'Search channels',searchPlaceholder:'Search channels…',noChannels:'No channels found',trySearch:'Try another search or group.',pickChannel:'Choose a channel',pickChannelHelp:'Playback starts here.',nowWatching:'WATCHING',nothingSelected:'No channel selected',now:'NOW',next:'NEXT',noEpg:'No EPG loaded',playerHelp:'Some IPTV sources block browsers with CORS or use codecs the browser does not support.',epgTitle:'Programme guide',epgIntro:'Add XMLTV from a URL or file. The guide is only kept in this tab.',epgUrl:'XMLTV address',loadEpg:'Load EPG',chooseXml:'Choose XMLTV file',favorites:'Favourites',all:'All channels',other:'Other',channelsWord:'channels',loading:'Loading…',cors:'Could not fetch the address. The IPTV provider may block browsers using CORS.',badPlaylist:'No channels were found in the playlist.',fileError:'Could not read the file.',epgLoaded:'EPG loaded',epgFail:'Could not read the XMLTV guide.',streamFail:'This channel could not be played in the browser. This may be caused by CORS, HTTP/HTTPS or an unsupported codec.',hlsMissing:'The HLS player could not be loaded. Check your internet connection or Content Security Policy.',favoriteAdded:'Added to favourites',favoriteRemoved:'Removed from favourites',listLoaded:'Playlist loaded'}
+    no: {eyebrow:'DIN SPILLELISTE · DIN TV',hero1:'TV uten',hero2:'unødvendig støy',lead:'Legg inn din egen M3U-liste og få et ryddig kanalgrensesnitt med favoritter, grupper og programoversikt.',tagLocal:'Spillelisten lagres ikke',tagEpg:'XMLTV / EPG',tagHls:'HLS-avspilling',start:'KOM I GANG',sourceTitle:'Legg til TV-kilde',urlTab:'M3U-adresse',fileTab:'M3U-fil',m3uAddress:'M3U / M3U8-adresse',openPlaylist:'Åpne spilleliste',chooseFile:'Velg M3U-fil',chooseFileHelp:'eller slipp filen her',privacy:'URL-import går via Cloud247-proxyen, men spillelisten og innloggingsdetaljene lagres ikke. Lokale filer blir i nettleseren.',epgButton:'EPG',replace:'Bytt liste',groups:'GRUPPER',allChannels:'ALLE KANALER',channels:'Kanaler',search:'Søk kanaler',searchPlaceholder:'Søk kanaler…',noChannels:'Ingen kanaler funnet',trySearch:'Prøv et annet søk eller en annen gruppe.',pickChannel:'Velg en kanal',pickChannelHelp:'Avspillingen starter her.',nowWatching:'SER PÅ',nothingSelected:'Ingen kanal valgt',now:'NÅ',next:'NESTE',noEpg:'Ingen EPG lastet',playerHelp:'Noen IPTV-kilder blokkerer nettlesere med CORS eller bruker kodeker nettleseren ikke støtter.',epgTitle:'Programguide',epgIntro:'Legg til XMLTV fra en URL eller fil. Guiden brukes kun i denne fanen.',epgUrl:'XMLTV-adresse',loadEpg:'Last EPG',chooseXml:'Velg XMLTV-fil',favorites:'Favoritter',all:'Alle kanaler',other:'Andre',channelsWord:'kanaler',loading:'Laster…',cors:'Kunne ikke hente via Cloud247-proxyen. Kontroller adressen, eller at IPTV-leverandøren tillater Cloudflare å hente kilden.',badPlaylist:'Fant ingen kanaler i spillelisten.',fileError:'Kunne ikke lese filen.',epgLoaded:'EPG lastet',epgFail:'Kunne ikke lese XMLTV-guiden.',streamFail:'Kanalen kunne ikke spilles i nettleseren. Det kan skyldes CORS, HTTP/HTTPS eller et kodekformat som ikke støttes.',hlsMissing:'HLS-avspiller kunne ikke lastes. Kontroller internettforbindelsen eller Content Security Policy.',favoriteAdded:'Lagt til i favoritter',favoriteRemoved:'Fjernet fra favoritter',listLoaded:'Spilleliste lastet'},
+    en: {eyebrow:'YOUR PLAYLIST · YOUR TV',hero1:'TV without',hero2:'unnecessary noise',lead:'Add your own M3U playlist and get a clean channel interface with favourites, groups and programme information.',tagLocal:'Playlist is not stored',tagEpg:'XMLTV / EPG',tagHls:'HLS playback',start:'GET STARTED',sourceTitle:'Add TV source',urlTab:'M3U address',fileTab:'M3U file',m3uAddress:'M3U / M3U8 address',openPlaylist:'Open playlist',chooseFile:'Choose M3U file',chooseFileHelp:'or drop the file here',privacy:'URL imports pass through the Cloud247 proxy, but playlists and login details are not stored. Local files stay in your browser.',epgButton:'EPG',replace:'Replace list',groups:'GROUPS',allChannels:'ALL CHANNELS',channels:'Channels',search:'Search channels',searchPlaceholder:'Search channels…',noChannels:'No channels found',trySearch:'Try another search or group.',pickChannel:'Choose a channel',pickChannelHelp:'Playback starts here.',nowWatching:'WATCHING',nothingSelected:'No channel selected',now:'NOW',next:'NEXT',noEpg:'No EPG loaded',playerHelp:'Some IPTV sources block browsers with CORS or use codecs the browser does not support.',epgTitle:'Programme guide',epgIntro:'Add XMLTV from a URL or file. The guide is only kept in this tab.',epgUrl:'XMLTV address',loadEpg:'Load EPG',chooseXml:'Choose XMLTV file',favorites:'Favourites',all:'All channels',other:'Other',channelsWord:'channels',loading:'Loading…',cors:'Could not fetch through the Cloud247 proxy. Check the address or whether the IPTV provider allows Cloudflare to fetch the source.',badPlaylist:'No channels were found in the playlist.',fileError:'Could not read the file.',epgLoaded:'EPG loaded',epgFail:'Could not read the XMLTV guide.',streamFail:'This channel could not be played in the browser. This may be caused by CORS, HTTP/HTTPS or an unsupported codec.',hlsMissing:'The HLS player could not be loaded. Check your internet connection or Content Security Policy.',favoriteAdded:'Added to favourites',favoriteRemoved:'Removed from favourites',listLoaded:'Playlist loaded'}
   };
   const t = (key) => i18n[state.lang]?.[key] || i18n.no[key] || key;
 
@@ -59,11 +60,25 @@
     return {channels, headerEpg};
   }
 
-  async function fetchText(url){
-    const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),15000);
+  async function fetchText(url,kind='playlist'){
+    const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),25000);
     try{
-      const r=await fetch(url,{signal:controller.signal,credentials:'omit',cache:'no-store',redirect:'follow'});
-      if(!r.ok) throw new Error(`HTTP ${r.status}`); return await r.text();
+      const r=await fetch(PROXY_URL,{
+        method:'POST',
+        signal:controller.signal,
+        credentials:'omit',
+        cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url,kind})
+      });
+      if(!r.ok){
+        let code='';
+        try{code=(await r.json())?.error||'';}catch{}
+        const error=new Error(code||`HTTP ${r.status}`);
+        error.code=code; error.status=r.status;
+        throw error;
+      }
+      return await r.text();
     } finally {clearTimeout(timer);}
   }
 
@@ -177,7 +192,7 @@
 
   async function loadPlaylistUrl(){
     hideError(els.sourceError); const url=els.playlistUrl.value.trim(); if(!url)return; els.loadUrl.disabled=true; const old=els.loadUrl.firstElementChild?.textContent; if(els.loadUrl.firstElementChild)els.loadUrl.firstElementChild.textContent=t('loading');
-    try{const text=await fetchText(url);const parsed=parseM3U(text);applyPlaylist(parsed,hostName(url));els.playlistUrl.value='';}
+    try{const text=await fetchText(url,'playlist');const parsed=parseM3U(text);applyPlaylist(parsed,hostName(url));els.playlistUrl.value='';}
     catch(e){showError(els.sourceError,e.message===t('badPlaylist')?e.message:t('cors'));}
     finally{els.loadUrl.disabled=false;if(els.loadUrl.firstElementChild)els.loadUrl.firstElementChild.textContent=old||t('openPlaylist');}
   }
@@ -221,7 +236,7 @@
   });
   els.replaceButton.addEventListener('click',()=>{destroyHls();els.video.pause();els.tvApp.hidden=true;els.welcome.hidden=false;window.scrollTo({top:0,behavior:'smooth'});});
   els.epgButton.addEventListener('click',()=>els.epgDialog.showModal());
-  els.loadEpgUrl.addEventListener('click',async()=>{hideError(els.epgError);const url=els.epgUrl.value.trim();if(!url)return;els.loadEpgUrl.disabled=true;try{await loadEpgFromText(await fetchText(url));}catch{showError(els.epgError,t('epgFail'));}finally{els.loadEpgUrl.disabled=false;}});
+  els.loadEpgUrl.addEventListener('click',async()=>{hideError(els.epgError);const url=els.epgUrl.value.trim();if(!url)return;els.loadEpgUrl.disabled=true;try{await loadEpgFromText(await fetchText(url,'epg'));}catch{showError(els.epgError,t('epgFail'));}finally{els.loadEpgUrl.disabled=false;}});
   els.epgFile.addEventListener('change',async()=>{const f=els.epgFile.files?.[0];if(f)await loadEpgFromText(await f.text());els.epgFile.value='';});
   els.video.addEventListener('error',()=>showPlayerMessage(t('streamFail')));
   document.addEventListener('keydown',e=>{if(e.key==='/' && document.activeElement?.tagName!=='INPUT'){e.preventDefault();els.channelSearch.focus();}if((e.key==='f'||e.key==='F')&&state.selectedChannel&&document.activeElement?.tagName!=='INPUT'){toggleFavorite(state.selectedChannel);}});
