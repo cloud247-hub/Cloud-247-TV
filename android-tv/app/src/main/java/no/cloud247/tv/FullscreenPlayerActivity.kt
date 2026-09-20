@@ -4,12 +4,19 @@ import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import android.app.Activity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(markerClass = [UnstableApi::class])
 class FullscreenPlayerActivity : Activity() {
@@ -21,6 +28,9 @@ class FullscreenPlayerActivity : Activity() {
     private lateinit var playerView: PlayerView
     private lateinit var nameView: TextView
     private lateinit var hintView: TextView
+    private lateinit var clockView: TextView
+    private lateinit var overlay: LinearLayout
+    private val overlayHandler = Handler(Looper.getMainLooper())
     private var player: ExoPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,10 +45,14 @@ class FullscreenPlayerActivity : Activity() {
         playerView = findViewById(R.id.fullscreenPlayer)
         nameView = findViewById(R.id.fullscreenName)
         hintView = findViewById(R.id.fullscreenHint)
+        clockView = findViewById(R.id.fullscreenClock)
+        overlay = findViewById(R.id.fullscreenOverlay)
 
         val url = intent.getStringExtra(EXTRA_URL).orEmpty()
         val channelName = intent.getStringExtra(EXTRA_NAME).orEmpty().ifBlank { "Cloud247 TV" }
         nameView.text = channelName
+        clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        showOverlay()
 
         if (url.isBlank()) {
             hintView.text = "Mangler stream-adresse."
@@ -52,7 +66,8 @@ class FullscreenPlayerActivity : Activity() {
             session.player.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_READY) {
-                        hintView.text = "Tilbake for å gå tilbake til kanaloversikten"
+                        hintView.text = "OK viser info · Tilbake går til kanaloversikten"
+                        scheduleOverlayHide()
                     }
                 }
 
@@ -69,12 +84,53 @@ class FullscreenPlayerActivity : Activity() {
         }
     }
 
+    private fun showOverlay() {
+        overlay.animate().cancel()
+        overlay.alpha = 1f
+        overlay.visibility = View.VISIBLE
+        clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        scheduleOverlayHide()
+    }
+
+    private fun scheduleOverlayHide() {
+        overlayHandler.removeCallbacksAndMessages(null)
+        overlayHandler.postDelayed({
+            overlay.animate()
+                .alpha(0f)
+                .setDuration(220L)
+                .withEndAction { overlay.visibility = View.GONE }
+                .start()
+        }, 2500L)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_INFO,
+            KeyEvent.KEYCODE_MENU -> {
+                showOverlay()
+                true
+            }
+            KeyEvent.KEYCODE_BACK -> {
+                finish()
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         player?.pause()
     }
 
     override fun onDestroy() {
+        overlayHandler.removeCallbacksAndMessages(null)
         playerView.player = null
         player?.release()
         player = null
