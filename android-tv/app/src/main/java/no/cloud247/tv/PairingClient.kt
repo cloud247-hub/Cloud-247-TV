@@ -48,7 +48,7 @@ object PairingClient {
             useCaches = false
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Cloud247-TV/1.1.0 (Android TV)")
+            setRequestProperty("User-Agent", "Cloud247-TV/1.1.1 (Android TV)")
         }
         return try {
             connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
