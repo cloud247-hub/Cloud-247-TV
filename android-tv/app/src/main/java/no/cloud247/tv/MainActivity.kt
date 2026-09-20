@@ -41,6 +41,11 @@ class MainActivity : Activity() {
         private const val MAX_EPG_BYTES = 32 * 1024 * 1024
         private const val PREFS = "cloud247_tv"
         private const val PREF_FAVORITES = "favorites"
+
+        private val NORWAY_TOKEN_REGEX =
+            Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])")
+        private val NORWEGIAN_NAME_REGEX =
+            Regex("^(NRK(?:\\s|$)|TV\\s?2(?:\\s|$)|TVNORGE(?:\\s|$)|FEM(?:\\s|$)|MAX(?:\\s|$)|VOX(?:\\s|$)|EUROSPORT\\s+NORGE(?:\\s|$)|VISJON\\s+NORGE(?:\\s|$)|FRIKANALEN(?:\\s|$)|MATKANALEN(?:\\s|$)|HEIM(?:\\s|$)|KANAL\\s+10\\s+NORGE(?:\\s|$))")
     }
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -70,6 +75,9 @@ class MainActivity : Activity() {
     private lateinit var channelAdapter: ChannelAdapter
 
     private var playlist = Playlist(emptyList())
+    private var channelsByGroup: Map<String, List<Channel>> = emptyMap()
+    private var norwegianChannels: List<Channel> = emptyList()
+    private var premierLeagueChannels: List<Channel> = emptyList()
     private var epgData = EpgData.EMPTY
     private var activeGroup = "__all__"
     private var selectedChannel: Channel? = null
@@ -234,11 +242,15 @@ class MainActivity : Activity() {
                 val text = NetworkClient.fetchText(url, MAX_M3U_BYTES)
                 val name = try { URL(url).host.removePrefix("www.") } catch (_: Exception) { "Spilleliste" }
                 val parsed = M3uParser.parse(text, name)
+                val index = buildPlaylistIndex(parsed.channels)
                 runOnUiThread {
                     if (persistOnSuccess) securePlaylistStore.save(url)
-                    Log.i(logTag, "playlist_load_success channels=${parsed.channels.size}")
+                    Log.i(
+                        logTag,
+                        "playlist_load_success channels=${parsed.channels.size} norwegian=${index.norwegian.size} epl=${index.premierLeague.size}"
+                    )
                     playlistUrl.setText("")
-                    applyPlaylist(parsed)
+                    applyPlaylist(parsed, index)
                 }
             } catch (error: Exception) {
                 Log.e(logTag, "playlist_load_failed: ${safeMessage(error)}")
@@ -316,7 +328,7 @@ class MainActivity : Activity() {
         pairingHandler.removeCallbacksAndMessages(null)
     }
 
-    private fun applyPlaylist(parsed: Playlist) {
+    private fun applyPlaylist(parsed: Playlist, index: PlaylistIndex) {
         if (parsed.channels.isEmpty()) {
             setSourceLoading(false, "Fant ingen kanaler i M3U-filen.")
             return
@@ -324,6 +336,9 @@ class MainActivity : Activity() {
 
         stopPairing()
         playlist = parsed
+        channelsByGroup = index.byGroup
+        norwegianChannels = index.norwegian
+        premierLeagueChannels = index.premierLeague
         epgData = EpgData.EMPTY
         activeGroup = "__all__"
         selectedChannel = null
@@ -340,10 +355,9 @@ class MainActivity : Activity() {
     }
 
     private fun renderGroups() {
-        val byGroup = playlist.channels.groupingBy { it.group }.eachCount()
         val favoriteCount = playlist.channels.count { it.favoriteKey() in favorites }
-        val norwegianCount = playlist.channels.count(::isNorwegianChannel)
-        val premierLeagueCount = playlist.channels.count(::isPremierLeagueChannel)
+        val norwegianCount = norwegianChannels.size
+        val premierLeagueCount = premierLeagueChannels.size
 
         val items = mutableListOf(
             GroupItem("__all__", "Alle kanaler", playlist.channels.size),
@@ -356,8 +370,8 @@ class MainActivity : Activity() {
             items += GroupItem("__premier_league__", "Premier League", premierLeagueCount)
         }
 
-        byGroup.toSortedMap(String.CASE_INSENSITIVE_ORDER).forEach { (group, count) ->
-            items += GroupItem(group, group, count)
+        channelsByGroup.toSortedMap(String.CASE_INSENSITIVE_ORDER).forEach { (group, channels) ->
+            items += GroupItem(group, group, channels.size)
         }
         groupAdapter.activeKey = activeGroup
         groupAdapter.setItems(items)
@@ -376,30 +390,32 @@ class MainActivity : Activity() {
                 value.contains("NORWAY") ||
                     value.contains("NORWEGIAN") ||
                     value.contains("NORGE") ||
-                    Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])").containsMatchIn(value)
+                    NORWAY_TOKEN_REGEX.containsMatchIn(value)
             }) {
             return true
         }
 
         val name = channel.name.trim().uppercase(Locale.ROOT)
-        return Regex("^(NRK(?:\\s|$)|TV\\s?2(?:\\s|$)|TVNORGE(?:\\s|$)|FEM(?:\\s|$)|MAX(?:\\s|$)|VOX(?:\\s|$)|EUROSPORT\\s+NORGE(?:\\s|$)|VISJON\\s+NORGE(?:\\s|$)|FRIKANALEN(?:\\s|$)|MATKANALEN(?:\\s|$)|HEIM(?:\\s|$)|KANAL\\s+10\\s+NORGE(?:\\s|$))")
-            .containsMatchIn(name)
+        return NORWEGIAN_NAME_REGEX.containsMatchIn(name)
     }
 
     private fun renderChannels() {
         if (!::channelAdapter.isInitialized) return
         val query = channelSearch.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
-        val filtered = playlist.channels.filter { channel ->
-            val groupMatch = when (activeGroup) {
-                "__all__" -> true
-                "__favorites__" -> channel.favoriteKey() in favorites
-                "__norwegian__" -> isNorwegianChannel(channel)
-                "__premier_league__" -> isPremierLeagueChannel(channel)
-                else -> channel.group == activeGroup
+        val source = when (activeGroup) {
+            "__all__" -> playlist.channels
+            "__favorites__" -> playlist.channels.filter { it.favoriteKey() in favorites }
+            "__norwegian__" -> norwegianChannels
+            "__premier_league__" -> premierLeagueChannels
+            else -> channelsByGroup[activeGroup].orEmpty()
+        }
+        val filtered = if (query.isBlank()) {
+            source
+        } else {
+            source.filter { channel ->
+                listOf(channel.name, channel.tvgName, channel.group)
+                    .any { it.lowercase(Locale.getDefault()).contains(query) }
             }
-            val searchMatch = query.isBlank() || listOf(channel.name, channel.tvgName, channel.group)
-                .any { it.lowercase(Locale.getDefault()).contains(query) }
-            groupMatch && searchMatch
         }
 
         channelHeading.text = when (activeGroup) {
@@ -411,6 +427,30 @@ class MainActivity : Activity() {
         }
         channelAdapter.activeChannel = selectedChannel
         channelAdapter.setItems(filtered)
+    }
+
+    private data class PlaylistIndex(
+        val byGroup: Map<String, List<Channel>>,
+        val norwegian: List<Channel>,
+        val premierLeague: List<Channel>
+    )
+
+    private fun buildPlaylistIndex(channels: List<Channel>): PlaylistIndex {
+        val byGroup = linkedMapOf<String, MutableList<Channel>>()
+        val norwegian = ArrayList<Channel>()
+        val premierLeague = ArrayList<Channel>()
+
+        for (channel in channels) {
+            byGroup.getOrPut(channel.group) { ArrayList() }.add(channel)
+            if (isNorwegianChannel(channel)) norwegian.add(channel)
+            if (isPremierLeagueChannel(channel)) premierLeague.add(channel)
+        }
+
+        return PlaylistIndex(
+            byGroup = byGroup.mapValues { it.value.toList() },
+            norwegian = norwegian,
+            premierLeague = premierLeague
+        )
     }
 
     private fun selectChannel(channel: Channel) {
@@ -564,7 +604,8 @@ class MainActivity : Activity() {
                 val bytes = readUriLimited(uri, MAX_M3U_BYTES)
                 val name = uri.lastPathSegment?.substringAfterLast('/')?.ifBlank { "M3U-fil" } ?: "M3U-fil"
                 val parsed = M3uParser.parse(String(bytes, Charsets.UTF_8), name)
-                runOnUiThread { applyPlaylist(parsed) }
+                val index = buildPlaylistIndex(parsed.channels)
+                runOnUiThread { applyPlaylist(parsed, index) }
             } catch (error: Exception) {
                 runOnUiThread { setSourceLoading(false, "Kunne ikke lese M3U-filen: ${safeMessage(error)}") }
             }
