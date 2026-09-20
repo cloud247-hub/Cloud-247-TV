@@ -29,30 +29,33 @@ export default {
     const origin = request.headers.get('Origin') || '';
     const allowedOrigins = parseOrigins(env.ALLOWED_ORIGINS);
     const cors = corsHeaders(origin, allowedOrigins);
+    const requestUrl = new URL(request.url);
+    const pairCors = pairCorsHeaders();
 
     if (request.method === 'OPTIONS') {
+      if (requestUrl.pathname === '/v1/pair/create' || requestUrl.pathname === '/v1/pair/poll') {
+        return new Response(null, { status: 204, headers: pairCors });
+      }
       if (!isAllowedOrigin(origin, allowedOrigins)) {
         return json({ error: 'origin_not_allowed' }, 403, cors);
       }
       return new Response(null, { status: 204, headers: cors });
     }
 
-    if (request.method === 'GET' && new URL(request.url).pathname === '/health') {
+    if (request.method === 'GET' && requestUrl.pathname === '/health') {
       const headers = new Headers(cors);
       headers.set('Cache-Control', 'no-store');
-      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.1.0' }, 200, headers);
+      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.2.0' }, 200, headers);
     }
 
-    const requestUrl = new URL(request.url);
-
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/create') {
-      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403);
-      return createPairingSession(env);
+      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403, pairCors);
+      return createPairingSession(env, pairCors);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/poll') {
-      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403);
-      return pollPairingSession(request, env);
+      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403, pairCors);
+      return pollPairingSession(request, env, pairCors);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/submit') {
@@ -127,7 +130,7 @@ export default {
 };
 
 
-async function createPairingSession(env) {
+async function createPairingSession(env, headers) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const code = randomPairCode();
     const token = randomToken();
@@ -140,26 +143,26 @@ async function createPairingSession(env) {
     });
 
     if (response.status === 409) continue;
-    if (!response.ok) return json({ error: 'pair_create_failed' }, 502);
+    if (!response.ok) return json({ error: 'pair_create_failed' }, 502, headers);
 
     return json({
       code,
       token,
       link: `https://tv.cloud247.no/link/?code=${code}`,
       expires_in: Math.floor(PAIR_TTL_MS / 1000),
-    }, 201);
+    }, 201, headers);
   }
 
-  return json({ error: 'pair_code_unavailable' }, 503);
+  return json({ error: 'pair_code_unavailable' }, 503, headers);
 }
 
-async function pollPairingSession(request, env) {
+async function pollPairingSession(request, env, headers) {
   const input = await readJson(request);
   const code = normalizePairCode(input?.code);
   const token = typeof input?.token === 'string' ? input.token : '';
 
   if (!code || token.length < 32) {
-    return json({ error: 'invalid_pair_request' }, 400);
+    return json({ error: 'invalid_pair_request' }, 400, headers);
   }
 
   const stub = env.PAIRING.get(env.PAIRING.idFromName(code));
@@ -169,11 +172,12 @@ async function pollPairingSession(request, env) {
     body: JSON.stringify({ token }),
   });
 
-  if (response.status === 204) return new Response(null, { status: 204 });
+  if (response.status === 204) return new Response(null, { status: 204, headers });
   const body = await response.text();
   return new Response(body, {
     status: response.status,
     headers: {
+      ...Object.fromEntries(headers.entries()),
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
@@ -306,7 +310,20 @@ export class PairingSession {
 }
 
 function isTvClient(request) {
-  return (request.headers.get('User-Agent') || '').startsWith('Cloud247-TV/');
+  const userAgent = request.headers.get('User-Agent') || '';
+  const client = request.headers.get('X-Cloud247-TV-Client') || '';
+  return userAgent.startsWith('Cloud247-TV/') || /^tizen-\d+\.\d+\.\d+$/i.test(client);
+}
+
+function pairCorsHeaders() {
+  return new Headers({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Cloud247-TV-Client',
+    'Access-Control-Max-Age': '86400',
+    'Cache-Control': 'no-store',
+    'Vary': 'Origin',
+  });
 }
 
 function parseOrigins(value) {
