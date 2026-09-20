@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.1.5.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.1.6.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.1.5
-          path: Cloud247-TV-Android-v1.1.5.apk
+          name: Cloud247-TV-Android-v1.1.6
+          path: Cloud247-TV-Android-v1.1.6.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,8 +58,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view android-tv-v1.1.5 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.1.5 Cloud247-TV-Android-v1.1.5.apk --clobber
+          if gh release view android-tv-v1.1.6 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.1.6 Cloud247-TV-Android-v1.1.6.apk --clobber
           else
-            gh release create android-tv-v1.1.5 Cloud247-TV-Android-v1.1.5.apk               --title "Cloud247 TV Android v1.1.5"               --notes "Android TV v1.1.5 adds a smart Norske kanaler group alongside Favorites, Premier League and normal playlist groups."
+            gh release create android-tv-v1.1.6 Cloud247-TV-Android-v1.1.6.apk               --title "Cloud247 TV Android v1.1.6"               --notes "Android TV v1.1.6 caches smart channel groups to prevent freezes when opening large groups such as Norske kanaler."
           fi
