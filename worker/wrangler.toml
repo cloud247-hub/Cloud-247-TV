@@ -1,0 +1,13 @@
+name = "cloud247-tv-api"
+main = "src/worker.js"
+compatibility_date = "2026-09-20"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://tv.cloud247.no"
+UPSTREAM_TIMEOUT_MS = "15000"
+UPSTREAM_USER_AGENT = "Cloud247-TV-Proxy/1.0.1"
+
+[[routes]]
+pattern = "tv-api.cloud247.no"
+custom_domain = true
