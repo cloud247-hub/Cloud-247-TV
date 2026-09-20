@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#061a2f">
+  <meta name="description" content="Koble en M3U-spilleliste til Cloud247 TV.">
+  <title>Koble til Cloud247 TV</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="link.css?v=1.1.0">
+  <script defer src="link.js?v=1.1.0"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a href="https://cloud247.no/" class="brand" aria-label="Cloud247"><img src="../assets/cloud247-logo.svg" alt="Cloud247"></a>
+      <span class="product">CLOUD247 TV</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="card" aria-labelledby="title">
+      <p class="eyebrow">KOBLE TIL TV</p>
+      <h1 id="title">Legg inn spillelisten på mobilen<span>.</span></h1>
+      <p class="lead">Skriv inn koden som vises på TV-en og lim inn M3U-adressen. TV-en henter adressen én gang og kobler seg deretter direkte til IPTV-leverandøren.</p>
+
+      <form id="pairForm" novalidate>
+        <label>
+          <span>TV-kode</span>
+          <input id="pairCode" name="code" maxlength="6" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
+        </label>
+
+        <label>
+          <span>M3U / M3U8-adresse</span>
+          <input id="playlistUrl" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://leverandor.example/playlist.m3u">
+        </label>
+
+        <button id="submitButton" type="submit">Send til TV <span aria-hidden="true">→</span></button>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </form>
+
+      <div class="privacy">
+        <strong>Personvern</strong>
+        <p>M3U-adressen lagres midlertidig i Cloudflare kun mens TV-en kobles til. Den slettes når TV-en har hentet den, eller automatisk etter omtrent 10 minutter. TV-en lagrer adressen lokalt for senere oppstart.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2026 Cloud247 · Cloud247 TV v1.1.0</footer>
+</body>
+</html>
