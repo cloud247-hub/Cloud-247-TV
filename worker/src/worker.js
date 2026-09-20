@@ -36,9 +36,9 @@ export default {
     }
 
     if (request.method === 'GET' && new URL(request.url).pathname === '/health') {
-      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.0.1' }, 200, {
-        'Cache-Control': 'no-store',
-      });
+      const headers = new Headers(cors);
+      headers.set('Cache-Control', 'no-store');
+      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.0.2' }, 200, headers);
     }
 
     if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/fetch') {
@@ -169,7 +169,7 @@ async function fetchValidated(initialUrl, kind, env) {
         'Accept': kind === 'epg'
           ? 'application/xml,text/xml,text/plain;q=0.9,*/*;q=0.5'
           : 'application/vnd.apple.mpegurl,application/x-mpegurl,text/plain;q=0.9,*/*;q=0.5',
-        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.1',
+        'User-Agent': env.UPSTREAM_USER_AGENT || 'Cloud247-TV-Proxy/1.0.2',
       });
       const fetchUrl = new URL(current);
       if (fetchUrl.username || fetchUrl.password) {
