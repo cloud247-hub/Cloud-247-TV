@@ -364,7 +364,7 @@
       { key: '__favorites__', label: '★ Favoritter', count: favoriteCount }
     ];
     if (state.norwegian.length) groups.push({ key: '__norwegian__', label: 'Norske kanaler', count: state.norwegian.length });
-    if (state.premier.length) groups.push({ key: '__premier__', label: 'Premier League', count: state.premier.length });
+    if (state.premier.length) groups.push({ key: '__premier__', label: 'Fotball', count: state.premier.length });
 
     var names = [];
     for (key in state.byGroup) if (state.byGroup.hasOwnProperty(key)) names.push(key);
@@ -393,7 +393,7 @@
     if (key === '__all__') return 'ALLE KANALER';
     if (key === '__favorites__') return 'FAVORITTER';
     if (key === '__norwegian__') return 'NORSKE KANALER';
-    if (key === '__premier__') return 'PREMIER LEAGUE';
+    if (key === '__premier__') return 'FOTBALL';
     return String(key || '').toUpperCase();
   }
 
