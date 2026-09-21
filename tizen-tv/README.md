@@ -27,6 +27,8 @@ Endringer fra v1.0.0:
 - Favoritter
 - Norske kanaler (smartgruppe)
 - Fotball (smartgruppe for kanalnavn som starter med `EPL`)
+- Tennis (matcher `Tennis`, `ATP` og `WTA` i kanalnavn/metadata)
+- Golf (matcher `Golf` og `PGA` i kanalnavn/metadata)
 - vanlige M3U-grupper
 - virtualisert kanalliste for store spillelister
 - M3U-grense 64 MiB
