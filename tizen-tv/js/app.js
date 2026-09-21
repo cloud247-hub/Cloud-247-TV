@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.0.2';
   var API = 'https://tv-api.cloud247.no';
   var MAX_M3U_BYTES = 64 * 1024 * 1024;
   var FAVORITES_KEY = 'cloud247tv:tizen:favorites';
