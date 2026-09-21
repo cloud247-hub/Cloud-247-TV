@@ -26,7 +26,7 @@ Endringer fra v1.0.0:
 - Alle kanaler
 - Favoritter
 - Norske kanaler (smartgruppe)
-- Premier League (kanalnavn som starter med `EPL`)
+- Fotball (smartgruppe for kanalnavn som starter med `EPL`)
 - vanlige M3U-grupper
 - virtualisert kanalliste for store spillelister
 - M3U-grense 64 MiB
