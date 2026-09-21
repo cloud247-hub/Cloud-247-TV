@@ -11,6 +11,7 @@ Native Android TV IPTV player built for the user's own M3U/M3U8 playlists.
 - Media3 / ExoPlayer playback
 - HLS and progressive/MPEG-TS playback through Media3
 - Groups from `group-title` / `EXTGRP`
+- Smart groups for Fotball, Tennis and Golf when matching channels exist
 - Channel search
 - Favorites stored locally on the TV
 - Channel logos loaded directly from `tvg-logo`
