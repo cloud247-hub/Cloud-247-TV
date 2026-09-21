@@ -46,23 +46,23 @@ jobs:
       - name: Build source bundle
         run: |
           cd tizen-tv
-          zip -r ../Cloud247-TV-Tizen-v1.0.1-source.zip . -x "*.wgt" ".build/*" ".sign/*" ".vscode/settings.json"
+          zip -r ../Cloud247-TV-Tizen-v1.0.2-source.zip . -x "*.wgt" ".build/*" ".sign/*" ".vscode/settings.json"
 
       - name: Upload source bundle
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Tizen-v1.0.1-source
-          path: Cloud247-TV-Tizen-v1.0.1-source.zip
+          name: Cloud247-TV-Tizen-v1.0.2-source
+          path: Cloud247-TV-Tizen-v1.0.2-source.zip
           retention-days: 30
 
       - name: Publish source release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view tizen-tv-v1.0.1 >/dev/null 2>&1; then
-            gh release upload tizen-tv-v1.0.1 Cloud247-TV-Tizen-v1.0.1-source.zip --clobber
+          if gh release view tizen-tv-v1.0.2 >/dev/null 2>&1; then
+            gh release upload tizen-tv-v1.0.2 Cloud247-TV-Tizen-v1.0.2-source.zip --clobber
           else
-            gh release create tizen-tv-v1.0.1 Cloud247-TV-Tizen-v1.0.1-source.zip \
-              --title "Cloud247 TV Samsung Tizen v1.0.1" \
-              --notes "VS Code Tizen Extension compatibility release. Adds automatic working-project setup, clean-path validation, VS Code extension recommendation and updated Samsung TV build/deploy documentation. Build/sign the WGT locally with your Samsung certificate profile."
+            gh release create tizen-tv-v1.0.2 Cloud247-TV-Tizen-v1.0.2-source.zip \
+              --title "Cloud247 TV Samsung Tizen v1.0.2" \
+              --notes "Samsung TV v1.0.2 adds dynamic Fotball, Tennis and Golf smart groups while keeping the app content-provider neutral. Includes the VS Code working-project setup from v1.0.1. Build/sign the WGT locally with your Samsung certificate profile."
           fi
