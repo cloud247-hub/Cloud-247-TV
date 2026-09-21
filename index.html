@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#061a2f">
-  <meta name="description" content="Cloud247 TV – Android TV-app for dine egne M3U-spillelister, med QR-pairing, favoritter, grupper og programguide.">
-  <title>Cloud247 TV – Android TV for din egen spilleliste</title>
+  <meta name="description" content="Cloud247 TV – Android TV- og Samsung TV-app for dine egne M3U-spillelister, med QR-pairing, favoritter, grupper og direkte avspilling.">
+  <title>Cloud247 TV – Android TV og Samsung TV for din egen spilleliste</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=2.0.0">
   <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js" onerror="window.__hlsLoadError=true"></script>
-  <script defer src="app.js?v=1.0.4"></script>
+  <script defer src="app.js?v=1.0.5"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Hopp til innhold</a>
@@ -21,7 +21,8 @@
       </a>
 
       <nav class="site-nav" aria-label="Hovedmeny">
-        <a href="#android-tv" data-i18n="navAndroid">Android TV</a>
+        <a href="#tv-apps" data-i18n="navAndroid">Android TV</a>
+        <a href="#tv-apps" data-i18n="navSamsung">Samsung TV</a>
         <a href="/link/" data-i18n="navPair">Koble TV</a>
         <a href="#web-player" data-i18n="navWeb">Webspiller</a>
       </nav>
@@ -37,20 +38,21 @@
 
   <main id="main">
     <section id="welcome" class="welcome">
-      <section id="android-tv" class="product-hero">
+      <section id="tv-apps" class="product-hero">
         <div class="shell product-hero-grid">
           <div class="product-copy">
-            <div class="version-pill"><span></span><span data-i18n="nativeApp">ANDROID TV · v1.1.6</span></div>
+            <div class="version-pill"><span></span><span data-i18n="nativeApp">ANDROID TV · v1.1.6 · SAMSUNG TV · v1.0.1</span></div>
             <p class="eyebrow" data-i18n="eyebrowNew">DIN TV · DIN SPILLELISTE</p>
             <h1>
               <span data-i18n="heroNew1">TV-en din.</span><br>
               <span class="hero-soft" data-i18n="heroNew2">Spillelisten din.</span>
             </h1>
-            <p class="lead" data-i18n="leadNew">Cloud247 TV gir deg et ryddig Android TV-grensesnitt for din egen M3U-liste – med QR-pairing, favoritter, smarte grupper og direkte avspilling fra TV-en.</p>
+            <p class="lead" data-i18n="leadNew">Cloud247 TV gir deg et ryddig TV-grensesnitt for din egen M3U-liste på Android TV og Samsung TV – med QR-pairing, favoritter, grupper og direkte avspilling fra TV-en.</p>
 
             <div class="hero-actions">
               <a class="primary-link" href="/link/"><span data-i18n="pairTv">Koble TV</span><span aria-hidden="true">→</span></a>
-              <a class="secondary-link" href="https://github.com/cloud247-hub/Cloud-247-TV/releases/latest" target="_blank" rel="noopener"><span data-i18n="downloadAndroid">Last ned Android TV</span><span aria-hidden="true">↗</span></a>
+              <a class="secondary-link" href="https://github.com/cloud247-hub/Cloud-247-TV/releases/tag/android-tv-v1.1.6" target="_blank" rel="noopener"><span data-i18n="downloadAndroid">Android TV</span><span aria-hidden="true">↗</span></a>
+              <a class="secondary-link" href="https://github.com/cloud247-hub/Cloud-247-TV/releases/tag/tizen-tv-v1.0.1" target="_blank" rel="noopener"><span data-i18n="downloadSamsung">Samsung TV</span><span aria-hidden="true">↗</span></a>
               <a class="text-link" href="#web-player" data-i18n="tryWeb">Prøv webspilleren</a>
             </div>
 
@@ -112,7 +114,7 @@
           <article class="benefit-card">
             <span class="benefit-number">03</span>
             <h2 data-i18n="benefit3Title">Finn kanalene raskt</h2>
-            <p data-i18n="benefit3Text">Favoritter, vanlige grupper, Norske kanaler og Premier League gjør store spillelister enklere å bruke.</p>
+            <p data-i18n="benefit3Text">Favoritter, søk og oversiktlige grupper gjør store spillelister raske og enkle å navigere.</p>
           </article>
         </div>
       </section>
@@ -122,11 +124,11 @@
           <div class="web-player-copy">
             <p class="eyebrow" data-i18n="webEyebrow">WEBSPILLER · BETA</p>
             <h2 data-i18n="webTitle">Vil du teste i nettleseren?</h2>
-            <p data-i18n="webLead">Du kan fortsatt åpne M3U-listen her. Selve videostrømmen må støtte nettleseravspilling, CORS og riktig kodek. For vanlig TV-bruk anbefales Android TV-appen.</p>
+            <p data-i18n="webLead">Du kan fortsatt åpne M3U-listen her. Selve videostrømmen må støtte nettleseravspilling, CORS og riktig kodek. For vanlig TV-bruk anbefales Android TV- eller Samsung TV-appen.</p>
 
             <div class="browser-note">
               <strong data-i18n="browserNoteTitle">Hvorfor kan VLC virke når nettleseren ikke gjør det?</strong>
-              <p data-i18n="browserNoteText">Nettlesere håndhever CORS og mixed-content-regler som native spillere ikke har. Derfor kan enkelte IPTV-kilder bare spilles i Android TV-appen eller VLC.</p>
+              <p data-i18n="browserNoteText">Nettlesere håndhever CORS og mixed-content-regler som native spillere ikke har. Derfor kan enkelte IPTV-kilder fungere i TV-appene eller VLC selv om nettleseren blokkerer dem.</p>
             </div>
           </div>
 
@@ -222,7 +224,7 @@
   <footer>
     <div class="shell footer-inner">
       <span>© 2026 Cloud247</span>
-      <span class="footer-version">Cloud247 TV · Android TV v1.1.6</span>
+      <span class="footer-version">Cloud247 TV · Android TV v1.1.6 · Samsung TV v1.0.1</span>
       <a href="https://cloud247.no/">cloud247.no ↗</a>
     </div>
   </footer>
