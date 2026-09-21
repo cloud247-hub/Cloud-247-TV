@@ -15,6 +15,8 @@
     byGroup: {},
     norwegian: [],
     premier: [],
+    tennis: [],
+    golf: [],
     groups: [],
     favorites: loadFavorites(),
     activeGroup: '__all__',
@@ -33,6 +35,8 @@
 
   var el = {};
   var NORWAY_TOKEN = /(^|[\s|:_\-\[\]])NO($|[\s|:_\-\[\]])/;
+  var TENNIS_TOKEN = /(^|[\s|:_\-\[\]])(ATP|WTA)($|[\s|:_\-\[\]])/;
+  var GOLF_TOKEN = /(^|[\s|:_\-\[\]])PGA($|[\s|:_\-\[\]])/;
   var NORWEGIAN_NAME = /^(NRK(?:\s|$)|TV\s?2(?:\s|$)|TVNORGE(?:\s|$)|FEM(?:\s|$)|MAX(?:\s|$)|VOX(?:\s|$)|EUROSPORT\s+NORGE(?:\s|$)|VISJON\s+NORGE(?:\s|$)|FRIKANALEN(?:\s|$)|MATKANALEN(?:\s|$)|HEIM(?:\s|$)|KANAL\s+10\s+NORGE(?:\s|$))/;
 
   function $(id) { return document.getElementById(id); }
@@ -308,6 +312,24 @@
     return /^EPL/i.test((channel.name || '').replace(/^\s+/, ''));
   }
 
+  function isTennis(channel) {
+    var values = [channel.name, channel.tvgName, channel.group];
+    for (var i = 0; i < values.length; i++) {
+      var value = (values[i] || '').replace(/^\s+|\s+$/g, '').toUpperCase();
+      if (value.indexOf('TENNIS') >= 0 || TENNIS_TOKEN.test(value)) return true;
+    }
+    return false;
+  }
+
+  function isGolf(channel) {
+    var values = [channel.name, channel.tvgName, channel.group];
+    for (var i = 0; i < values.length; i++) {
+      var value = (values[i] || '').replace(/^\s+|\s+$/g, '').toUpperCase();
+      if (value.indexOf('GOLF') >= 0 || GOLF_TOKEN.test(value)) return true;
+    }
+    return false;
+  }
+
   function isNorwegian(channel) {
     var values = [channel.name, channel.tvgName, channel.group];
     for (var i = 0; i < values.length; i++) {
@@ -326,16 +348,22 @@
     var byGroup = {};
     var norwegian = [];
     var premier = [];
+    var tennis = [];
+    var golf = [];
     for (var i = 0; i < channels.length; i++) {
       var channel = channels[i];
       if (!byGroup[channel.group]) byGroup[channel.group] = [];
       byGroup[channel.group].push(channel);
       if (isNorwegian(channel)) norwegian.push(channel);
       if (isPremier(channel)) premier.push(channel);
+      if (isTennis(channel)) tennis.push(channel);
+      if (isGolf(channel)) golf.push(channel);
     }
     state.byGroup = byGroup;
     state.norwegian = norwegian;
     state.premier = premier;
+    state.tennis = tennis;
+    state.golf = golf;
   }
 
   function applyPlaylist(playlist, name) {
@@ -365,6 +393,8 @@
     ];
     if (state.norwegian.length) groups.push({ key: '__norwegian__', label: 'Norske kanaler', count: state.norwegian.length });
     if (state.premier.length) groups.push({ key: '__premier__', label: 'Fotball', count: state.premier.length });
+    if (state.tennis.length) groups.push({ key: '__tennis__', label: 'Tennis', count: state.tennis.length });
+    if (state.golf.length) groups.push({ key: '__golf__', label: 'Golf', count: state.golf.length });
 
     var names = [];
     for (key in state.byGroup) if (state.byGroup.hasOwnProperty(key)) names.push(key);
@@ -378,6 +408,8 @@
     if (state.activeGroup === '__all__') list = state.channels;
     else if (state.activeGroup === '__norwegian__') list = state.norwegian;
     else if (state.activeGroup === '__premier__') list = state.premier;
+    else if (state.activeGroup === '__tennis__') list = state.tennis;
+    else if (state.activeGroup === '__golf__') list = state.golf;
     else if (state.activeGroup === '__favorites__') {
       list = [];
       for (var i = 0; i < state.channels.length; i++) if (state.favorites[favoriteKey(state.channels[i])]) list.push(state.channels[i]);
@@ -394,6 +426,8 @@
     if (key === '__favorites__') return 'FAVORITTER';
     if (key === '__norwegian__') return 'NORSKE KANALER';
     if (key === '__premier__') return 'FOTBALL';
+    if (key === '__tennis__') return 'TENNIS';
+    if (key === '__golf__') return 'GOLF';
     return String(key || '').toUpperCase();
   }
 
