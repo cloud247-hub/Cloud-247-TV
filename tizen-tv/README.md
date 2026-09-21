@@ -2,18 +2,18 @@
 
 Samsung TV-versjonen av Cloud247 TV.
 
-## v1.0.1
+## v1.0.2
 
-Denne versjonen er oppdatert for den nye **Tizen Extension for Visual Studio Code**.
+Denne versjonen bygger videre på VS Code/Tizen-oppsettet fra v1.0.1.
 
-Endringer fra v1.0.0:
+Endringer fra v1.0.1:
 
-- Ny `Setup-Tizen.ps1` setter `tizen.v2.working.project` automatisk til korrekt absolutt prosjektsti.
-- Ny `Open-Cloud247-Tizen.cmd` for ett-klikk-oppsett på Windows.
-- Varsler hvis prosjektstien inneholder tegn Tizen Extension ikke godtar, for eksempel `Cloud-247-TV-main (2)`.
-- VS Code anbefaler automatisk den offisielle `tizen.vscode-tizen-csharp`-extensionen.
-- Dokumentasjonen er oppdatert fra gammel Tizen Studio-flyt til dagens VS Code-flyt.
-- Appversjon er økt til `1.0.1`.
+- Smartgruppen **Fotball** erstatter Premier League-navnet i brukergrensesnittet, mens EPL-prefiks fortsatt brukes som intern match.
+- Ny dynamisk smartgruppe **Tennis** for kanaler/metadata som matcher `Tennis`, `ATP` eller `WTA`.
+- Ny dynamisk smartgruppe **Golf** for kanaler/metadata som matcher `Golf` eller `PGA`.
+- Smartgruppene vises bare når spillelisten faktisk inneholder treff.
+- Runtime- og widgetversjon er synkronisert til `1.0.2`.
+- Oppsettet med `Setup-Tizen.ps1`, VS Code Tizen Extension og samme Samsung author certificate videreføres.
 
 ## Funksjoner
 
@@ -154,6 +154,6 @@ Hvis Package Manager henger eller loggen viser `ETIMEDOUT`, test fra et annet ne
 
 ## Pairing API
 
-Tizen v1.0.1 krever Cloud247 TV Worker v1.2.0 eller nyere. Worker støtter `X-Cloud247-TV-Client` for `/v1/pair/create` og `/v1/pair/poll`.
+Tizen v1.0.2 krever Cloud247 TV Worker v1.2.0 eller nyere. Worker støtter `X-Cloud247-TV-Client` for `/v1/pair/create` og `/v1/pair/poll`.
 
 Mobilens `/v1/pair/submit` er fortsatt låst til `https://tv.cloud247.no`.
