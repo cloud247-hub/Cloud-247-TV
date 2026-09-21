@@ -44,6 +44,10 @@ class MainActivity : Activity() {
 
         private val NORWAY_TOKEN_REGEX =
             Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])")
+        private val TENNIS_TOKEN_REGEX =
+            Regex("(^|[\\s|:_\\-\\[\\]])(ATP|WTA)($|[\\s|:_\\-\\[\\]])")
+        private val GOLF_TOKEN_REGEX =
+            Regex("(^|[\\s|:_\\-\\[\\]])PGA($|[\\s|:_\\-\\[\\]])")
         private val NORWEGIAN_NAME_REGEX =
             Regex("^(NRK(?:\\s|$)|TV\\s?2(?:\\s|$)|TVNORGE(?:\\s|$)|FEM(?:\\s|$)|MAX(?:\\s|$)|VOX(?:\\s|$)|EUROSPORT\\s+NORGE(?:\\s|$)|VISJON\\s+NORGE(?:\\s|$)|FRIKANALEN(?:\\s|$)|MATKANALEN(?:\\s|$)|HEIM(?:\\s|$)|KANAL\\s+10\\s+NORGE(?:\\s|$))")
     }
@@ -78,6 +82,8 @@ class MainActivity : Activity() {
     private var channelsByGroup: Map<String, List<Channel>> = emptyMap()
     private var norwegianChannels: List<Channel> = emptyList()
     private var premierLeagueChannels: List<Channel> = emptyList()
+    private var tennisChannels: List<Channel> = emptyList()
+    private var golfChannels: List<Channel> = emptyList()
     private var epgData = EpgData.EMPTY
     private var activeGroup = "__all__"
     private var selectedChannel: Channel? = null
@@ -247,7 +253,7 @@ class MainActivity : Activity() {
                     if (persistOnSuccess) securePlaylistStore.save(url)
                     Log.i(
                         logTag,
-                        "playlist_load_success channels=${parsed.channels.size} norwegian=${index.norwegian.size} epl=${index.premierLeague.size}"
+                        "playlist_load_success channels=${parsed.channels.size} norwegian=${index.norwegian.size} epl=${index.premierLeague.size} tennis=${index.tennis.size} golf=${index.golf.size}"
                     )
                     playlistUrl.setText("")
                     applyPlaylist(parsed, index)
@@ -339,6 +345,8 @@ class MainActivity : Activity() {
         channelsByGroup = index.byGroup
         norwegianChannels = index.norwegian
         premierLeagueChannels = index.premierLeague
+        tennisChannels = index.tennis
+        golfChannels = index.golf
         epgData = EpgData.EMPTY
         activeGroup = "__all__"
         selectedChannel = null
@@ -358,6 +366,8 @@ class MainActivity : Activity() {
         val favoriteCount = playlist.channels.count { it.favoriteKey() in favorites }
         val norwegianCount = norwegianChannels.size
         val premierLeagueCount = premierLeagueChannels.size
+        val tennisCount = tennisChannels.size
+        val golfCount = golfChannels.size
 
         val items = mutableListOf(
             GroupItem("__all__", "Alle kanaler", playlist.channels.size),
@@ -369,6 +379,12 @@ class MainActivity : Activity() {
         if (premierLeagueCount > 0) {
             items += GroupItem("__premier_league__", "Fotball", premierLeagueCount)
         }
+        if (tennisCount > 0) {
+            items += GroupItem("__tennis__", "Tennis", tennisCount)
+        }
+        if (golfCount > 0) {
+            items += GroupItem("__golf__", "Golf", golfCount)
+        }
 
         channelsByGroup.toSortedMap(String.CASE_INSENSITIVE_ORDER).forEach { (group, channels) ->
             items += GroupItem(group, group, channels.size)
@@ -379,6 +395,26 @@ class MainActivity : Activity() {
 
     private fun isPremierLeagueChannel(channel: Channel): Boolean {
         return channel.name.trim().startsWith("EPL", ignoreCase = true)
+    }
+
+    private fun isTennisChannel(channel: Channel): Boolean {
+        return listOf(channel.name, channel.tvgName, channel.group)
+            .map { it.trim().uppercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }
+            .any { value ->
+                value.contains("TENNIS") ||
+                    TENNIS_TOKEN_REGEX.containsMatchIn(value)
+            }
+    }
+
+    private fun isGolfChannel(channel: Channel): Boolean {
+        return listOf(channel.name, channel.tvgName, channel.group)
+            .map { it.trim().uppercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }
+            .any { value ->
+                value.contains("GOLF") ||
+                    GOLF_TOKEN_REGEX.containsMatchIn(value)
+            }
     }
 
     private fun isNorwegianChannel(channel: Channel): Boolean {
@@ -407,6 +443,8 @@ class MainActivity : Activity() {
             "__favorites__" -> playlist.channels.filter { it.favoriteKey() in favorites }
             "__norwegian__" -> norwegianChannels
             "__premier_league__" -> premierLeagueChannels
+            "__tennis__" -> tennisChannels
+            "__golf__" -> golfChannels
             else -> channelsByGroup[activeGroup].orEmpty()
         }
         val filtered = if (query.isBlank()) {
@@ -423,6 +461,8 @@ class MainActivity : Activity() {
             "__favorites__" -> "FAVORITTER"
             "__norwegian__" -> "NORSKE KANALER"
             "__premier_league__" -> "FOTBALL"
+            "__tennis__" -> "TENNIS"
+            "__golf__" -> "GOLF"
             else -> activeGroup.uppercase(Locale.getDefault())
         }
         channelAdapter.activeChannel = selectedChannel
@@ -432,24 +472,32 @@ class MainActivity : Activity() {
     private data class PlaylistIndex(
         val byGroup: Map<String, List<Channel>>,
         val norwegian: List<Channel>,
-        val premierLeague: List<Channel>
+        val premierLeague: List<Channel>,
+        val tennis: List<Channel>,
+        val golf: List<Channel>
     )
 
     private fun buildPlaylistIndex(channels: List<Channel>): PlaylistIndex {
         val byGroup = linkedMapOf<String, MutableList<Channel>>()
         val norwegian = ArrayList<Channel>()
         val premierLeague = ArrayList<Channel>()
+        val tennis = ArrayList<Channel>()
+        val golf = ArrayList<Channel>()
 
         for (channel in channels) {
             byGroup.getOrPut(channel.group) { ArrayList() }.add(channel)
             if (isNorwegianChannel(channel)) norwegian.add(channel)
             if (isPremierLeagueChannel(channel)) premierLeague.add(channel)
+            if (isTennisChannel(channel)) tennis.add(channel)
+            if (isGolfChannel(channel)) golf.add(channel)
         }
 
         return PlaylistIndex(
             byGroup = byGroup.mapValues { it.value.toList() },
             norwegian = norwegian,
-            premierLeague = premierLeague
+            premierLeague = premierLeague,
+            tennis = tennis,
+            golf = golf
         )
     }
 
