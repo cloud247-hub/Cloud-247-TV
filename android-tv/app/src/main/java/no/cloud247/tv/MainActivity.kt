@@ -367,7 +367,7 @@ class MainActivity : Activity() {
             items += GroupItem("__norwegian__", "Norske kanaler", norwegianCount)
         }
         if (premierLeagueCount > 0) {
-            items += GroupItem("__premier_league__", "Premier League", premierLeagueCount)
+            items += GroupItem("__premier_league__", "Fotball", premierLeagueCount)
         }
 
         channelsByGroup.toSortedMap(String.CASE_INSENSITIVE_ORDER).forEach { (group, channels) ->
@@ -422,7 +422,7 @@ class MainActivity : Activity() {
             "__all__" -> "ALLE KANALER"
             "__favorites__" -> "FAVORITTER"
             "__norwegian__" -> "NORSKE KANALER"
-            "__premier_league__" -> "PREMIER LEAGUE"
+            "__premier_league__" -> "FOTBALL"
             else -> activeGroup.uppercase(Locale.getDefault())
         }
         channelAdapter.activeChannel = selectedChannel
