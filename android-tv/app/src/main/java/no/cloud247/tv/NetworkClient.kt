@@ -2,6 +2,7 @@ package no.cloud247.tv
 
 import android.util.Base64
 import java.io.ByteArrayOutputStream
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
@@ -9,9 +10,9 @@ import java.net.URL
 import java.util.zip.GZIPInputStream
 
 object NetworkClient {
-    private const val USER_AGENT = "Cloud247-TV/1.1.6 (Android TV)"
+    private const val USER_AGENT = "Cloud247-TV/1.2.1 (Android)"
     private const val CONNECT_TIMEOUT_MS = 15_000
-    private const val READ_TIMEOUT_MS = 30_000
+    private const val READ_TIMEOUT_MS = 60_000
     private const val MAX_REDIRECTS = 5
 
     fun fetchText(url: String, maxBytes: Int = 16 * 1024 * 1024): String {
@@ -19,6 +20,19 @@ object NetworkClient {
     }
 
     fun fetchBytes(url: String, maxBytes: Int): ByteArray {
+        return withInputStream(url, maxBytes) { stream ->
+            val output = ByteArrayOutputStream(minOf(maxBytes, 256 * 1024))
+            val buffer = ByteArray(32 * 1024)
+            while (true) {
+                val read = stream.read(buffer)
+                if (read < 0) break
+                output.write(buffer, 0, read)
+            }
+            output.toByteArray()
+        }
+    }
+
+    fun <T> withInputStream(url: String, maxBytes: Int, block: (InputStream) -> T): T {
         var current = URL(url)
         var inheritedAuthorization: String? = basicAuthorization(current)
 
@@ -39,15 +53,21 @@ object NetworkClient {
             try {
                 val status = connection.responseCode
                 if (status in listOf(301, 302, 303, 307, 308)) {
-                    if (redirectIndex >= MAX_REDIRECTS) throw NetworkException("For mange videresendinger")
+                    if (redirectIndex >= MAX_REDIRECTS) {
+                        throw NetworkException("For mange videresendinger")
+                    }
+
                     val location = connection.getHeaderField("Location")
                         ?: throw NetworkException("Ugyldig videresending fra leverandøren")
                     val next = URL(current, location)
+
                     if (next.protocol !in listOf("http", "https")) {
                         throw NetworkException("Ustøttet protokoll i videresending")
                     }
+
                     val sameHost = current.host.equals(next.host, ignoreCase = true)
-                    inheritedAuthorization = basicAuthorization(next) ?: if (sameHost) inheritedAuthorization else null
+                    inheritedAuthorization =
+                        basicAuthorization(next) ?: if (sameHost) inheritedAuthorization else null
                     current = next
                     return@repeat
                 }
@@ -57,18 +77,20 @@ object NetworkClient {
                 }
 
                 val contentLength = connection.contentLengthLong
-                if (contentLength > maxBytes) throw NetworkException("Responsen er for stor")
+                val compressed = connection.contentEncoding.equals("gzip", ignoreCase = true) ||
+                    current.path.endsWith(".gz", ignoreCase = true)
+
+                // For compressed XMLTV, Content-Length is the compressed size. The actual
+                // decompressed size is enforced by LimitedInputStream below.
+                if (!compressed && contentLength > maxBytes) {
+                    throw NetworkException("Responsen er for stor")
+                }
 
                 val raw = connection.inputStream
-                val stream = if (
-                    connection.contentEncoding.equals("gzip", ignoreCase = true) ||
-                    current.path.endsWith(".gz", ignoreCase = true)
-                ) {
-                    GZIPInputStream(raw)
-                } else {
-                    raw
+                val decoded = if (compressed) GZIPInputStream(raw) else raw
+                LimitedInputStream(decoded, maxBytes).use { limited ->
+                    return block(limited)
                 }
-                stream.use { return readLimited(it, maxBytes) }
             } finally {
                 connection.disconnect()
             }
@@ -77,18 +99,30 @@ object NetworkClient {
         throw NetworkException("Kunne ikke hente adressen")
     }
 
-    private fun readLimited(input: InputStream, maxBytes: Int): ByteArray {
-        val output = ByteArrayOutputStream(minOf(maxBytes, 256 * 1024))
-        val buffer = ByteArray(32 * 1024)
-        var total = 0
-        while (true) {
-            val read = input.read(buffer)
-            if (read < 0) break
-            total += read
-            if (total > maxBytes) throw NetworkException("Responsen er for stor")
-            output.write(buffer, 0, read)
+    private class LimitedInputStream(
+        input: InputStream,
+        private val maxBytes: Int
+    ) : FilterInputStream(input) {
+        private var total: Long = 0
+
+        override fun read(): Int {
+            val value = super.read()
+            if (value >= 0) addBytes(1)
+            return value
         }
-        return output.toByteArray()
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val read = super.read(buffer, offset, length)
+            if (read > 0) addBytes(read)
+            return read
+        }
+
+        private fun addBytes(count: Int) {
+            total += count.toLong()
+            if (total > maxBytes.toLong()) {
+                throw NetworkException("Responsen er for stor")
+            }
+        }
     }
 
     private fun basicAuthorization(url: URL): String? {

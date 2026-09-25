@@ -3,6 +3,7 @@ package no.cloud247.tv
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -13,9 +14,13 @@ object XmlTvParser {
     private const val FUTURE_WINDOW_MS = 72L * 60 * 60 * 1000
 
     fun parse(bytes: ByteArray, channels: List<Channel>): EpgData {
+        return parse(ByteArrayInputStream(bytes), channels)
+    }
+
+    fun parse(input: InputStream, channels: List<Channel>): EpgData {
         val parser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
-        parser.setInput(ByteArrayInputStream(bytes), "UTF-8")
+        parser.setInput(input, "UTF-8")
 
         val wantedIds = channels.mapNotNull { it.tvgId.takeIf(String::isNotBlank) }.toMutableSet()
         val wantedNames = channels

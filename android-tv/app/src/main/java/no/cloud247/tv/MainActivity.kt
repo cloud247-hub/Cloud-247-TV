@@ -38,7 +38,7 @@ class MainActivity : Activity() {
         private const val REQUEST_M3U = 1001
         private const val REQUEST_EPG = 1002
         private const val MAX_M3U_BYTES = 64 * 1024 * 1024
-        private const val MAX_EPG_BYTES = 32 * 1024 * 1024
+        private const val MAX_EPG_BYTES = 128 * 1024 * 1024
         private const val PREFS = "cloud247_tv"
         private const val PREF_FAVORITES = "favorites"
 
@@ -557,8 +557,9 @@ class MainActivity : Activity() {
         Toast.makeText(this, "Laster XMLTV / EPG …", Toast.LENGTH_SHORT).show()
         executor.execute {
             try {
-                val bytes = NetworkClient.fetchBytes(url, MAX_EPG_BYTES)
-                val parsed = XmlTvParser.parse(bytes, playlist.channels)
+                val parsed = NetworkClient.withInputStream(url, MAX_EPG_BYTES) { stream ->
+                    XmlTvParser.parse(stream, playlist.channels)
+                }
                 runOnUiThread { applyEpg(parsed, openGuideOnSuccess) }
             } catch (error: Exception) {
                 runOnUiThread {
@@ -665,11 +666,43 @@ class MainActivity : Activity() {
         Toast.makeText(this, "Leser XMLTV-fil …", Toast.LENGTH_SHORT).show()
         executor.execute {
             try {
-                val bytes = readUriLimited(uri, MAX_EPG_BYTES)
-                val parsed = XmlTvParser.parse(bytes, playlist.channels)
+                val input = contentResolver.openInputStream(uri)
+                    ?: throw NetworkException("Kunne ikke åpne XMLTV-filen")
+                val parsed = input.use { stream ->
+                    XmlTvParser.parse(
+                        LimitedLocalInputStream(stream, MAX_EPG_BYTES),
+                        playlist.channels
+                    )
+                }
                 runOnUiThread { applyEpg(parsed, openGuideOnSuccess = true) }
             } catch (error: Exception) {
                 runOnUiThread { Toast.makeText(this, "Kunne ikke lese XMLTV-filen: ${safeMessage(error)}", Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
+    private class LimitedLocalInputStream(
+        input: java.io.InputStream,
+        private val maxBytes: Int
+    ) : java.io.FilterInputStream(input) {
+        private var total: Long = 0
+
+        override fun read(): Int {
+            val value = super.read()
+            if (value >= 0) addBytes(1)
+            return value
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val read = super.read(buffer, offset, length)
+            if (read > 0) addBytes(read)
+            return read
+        }
+
+        private fun addBytes(count: Int) {
+            total += count.toLong()
+            if (total > maxBytes.toLong()) {
+                throw NetworkException("Filen er for stor")
             }
         }
     }
