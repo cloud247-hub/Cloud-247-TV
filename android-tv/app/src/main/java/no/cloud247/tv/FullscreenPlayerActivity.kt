@@ -6,7 +6,9 @@ import android.app.Activity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -17,6 +19,7 @@ import androidx.media3.ui.PlayerView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 @OptIn(markerClass = [UnstableApi::class])
 class FullscreenPlayerActivity : Activity() {
@@ -25,7 +28,7 @@ class FullscreenPlayerActivity : Activity() {
         const val EXTRA_NAME = "channel_name"
 
         private const val REMOTE_HINT =
-            "↑/↓ eller CH+/− bytter kanal · OK viser info · Tilbake går til kanaloversikten"
+            "↑/↓ eller CH+/− bytter kanal · Trykk eller swipe på skjermen · OK viser info"
 
         private var preparedChannels: List<Channel> = emptyList()
         private var preparedIndex: Int = 0
@@ -44,6 +47,10 @@ class FullscreenPlayerActivity : Activity() {
     private lateinit var hintView: TextView
     private lateinit var clockView: TextView
     private lateinit var overlay: LinearLayout
+    private lateinit var touchControls: LinearLayout
+    private lateinit var previousTouch: TextView
+    private lateinit var infoTouch: TextView
+    private lateinit var nextTouch: TextView
     private val overlayHandler = Handler(Looper.getMainLooper())
 
     private var player: ExoPlayer? = null
@@ -65,6 +72,12 @@ class FullscreenPlayerActivity : Activity() {
         hintView = findViewById(R.id.fullscreenHint)
         clockView = findViewById(R.id.fullscreenClock)
         overlay = findViewById(R.id.fullscreenOverlay)
+        touchControls = findViewById(R.id.fullscreenTouchControls)
+        previousTouch = findViewById(R.id.fullscreenPrevious)
+        infoTouch = findViewById(R.id.fullscreenInfo)
+        nextTouch = findViewById(R.id.fullscreenNext)
+
+        configureTouchControls()
 
         channels = preparedChannels
         channelIndex = preparedIndex.coerceIn(0, channels.lastIndex.coerceAtLeast(0))
@@ -80,6 +93,57 @@ class FullscreenPlayerActivity : Activity() {
 
         clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         playCurrentChannel()
+    }
+
+    private fun configureTouchControls() {
+        previousTouch.setOnClickListener { switchChannel(-1) }
+        nextTouch.setOnClickListener { switchChannel(1) }
+        infoTouch.setOnClickListener { toggleOverlay() }
+
+        val swipeThreshold = 110f * resources.displayMetrics.density
+        val gestureDetector = GestureDetector(
+            this,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean = true
+
+                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                    val width = playerView.width.toFloat()
+                    if (width <= 0f) {
+                        toggleOverlay()
+                        return true
+                    }
+
+                    when {
+                        e.x < width / 3f -> switchChannel(-1)
+                        e.x > width * 2f / 3f -> switchChannel(1)
+                        else -> toggleOverlay()
+                    }
+                    return true
+                }
+
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    val start = e1 ?: return false
+                    val deltaX = e2.x - start.x
+                    val deltaY = e2.y - start.y
+
+                    if (abs(deltaX) < swipeThreshold || abs(deltaX) <= abs(deltaY)) {
+                        return false
+                    }
+
+                    if (deltaX < 0f) switchChannel(1) else switchChannel(-1)
+                    return true
+                }
+            }
+        )
+
+        playerView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+        }
     }
 
     private fun playCurrentChannel() {
@@ -146,21 +210,48 @@ class FullscreenPlayerActivity : Activity() {
 
     private fun showOverlay() {
         overlay.animate().cancel()
+        touchControls.animate().cancel()
+
         overlay.alpha = 1f
+        touchControls.alpha = 1f
         overlay.visibility = View.VISIBLE
+        touchControls.visibility = View.VISIBLE
+
         clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         scheduleOverlayHide()
+    }
+
+    private fun hideOverlay() {
+        overlay.animate().cancel()
+        touchControls.animate().cancel()
+
+        overlay.animate()
+            .alpha(0f)
+            .setDuration(220L)
+            .withEndAction { overlay.visibility = View.GONE }
+            .start()
+
+        touchControls.animate()
+            .alpha(0f)
+            .setDuration(220L)
+            .withEndAction { touchControls.visibility = View.GONE }
+            .start()
+    }
+
+    private fun toggleOverlay() {
+        if (overlay.visibility == View.VISIBLE && overlay.alpha > 0.2f) {
+            overlayHandler.removeCallbacksAndMessages(null)
+            hideOverlay()
+        } else {
+            showOverlay()
+        }
     }
 
     private fun scheduleOverlayHide() {
         overlayHandler.removeCallbacksAndMessages(null)
         overlayHandler.postDelayed({
-            overlay.animate()
-                .alpha(0f)
-                .setDuration(220L)
-                .withEndAction { overlay.visibility = View.GONE }
-                .start()
-        }, 2500L)
+            hideOverlay()
+        }, 3000L)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
