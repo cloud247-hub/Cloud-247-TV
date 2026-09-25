@@ -10,7 +10,7 @@
       navAndroid: 'Android TV',
       navSamsung: 'Samsung TV',
       navPair: 'Koble TV',
-      nativeApp: 'ANDROID TV · v1.1.6 · SAMSUNG TV · v1.0.2',
+      nativeApp: 'ANDROID TV · v1.1.8 · SAMSUNG TV · v1.0.3',
       eyebrowNew: 'DIN TV · DIN SPILLELISTE',
       heroNew1: 'TV-en din.',
       heroNew2: 'Spillelisten din.',
@@ -40,13 +40,13 @@
       benefit2Title: 'Spill direkte',
       benefit2Text: 'TV-en kobler seg direkte til leverandøren. Ingen nettleser-CORS og ingen videostrøm gjennom Cloud247.',
       benefit3Title: 'Finn kanalene raskt',
-      benefit3Text: 'Favoritter, søk og oversiktlige grupper gjør store spillelister raske og enkle å navigere.'
+      benefit3Text: 'Favoritter, søk og oversiktlige grupper gjør store spillelister raske og enkle å navigere. På nettbrett kan du også bytte kanal med touch og swipe i fullskjerm.'
     },
     en: {
       navAndroid: 'Android TV',
       navSamsung: 'Samsung TV',
       navPair: 'Pair TV',
-      nativeApp: 'ANDROID TV · v1.1.6 · SAMSUNG TV · v1.0.2',
+      nativeApp: 'ANDROID TV · v1.1.8 · SAMSUNG TV · v1.0.3',
       eyebrowNew: 'YOUR TV · YOUR PLAYLIST',
       heroNew1: 'Your TV.',
       heroNew2: 'Your playlist.',
@@ -76,7 +76,7 @@
       benefit2Title: 'Play directly',
       benefit2Text: 'The TV connects directly to the provider. No browser CORS and no video stream through Cloud247.',
       benefit3Title: 'Find channels faster',
-      benefit3Text: 'Favourites, search and clear groups make large playlists faster and easier to navigate.'
+      benefit3Text: 'Favourites, search and clear groups make large playlists faster and easier to navigate. On tablets, fullscreen also supports touch and swipe channel switching.'
     }
   };
 
