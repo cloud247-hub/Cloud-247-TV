@@ -1,13 +1,16 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.2';
+  var VERSION = '1.0.3';
   var API = 'https://tv-api.cloud247.no';
   var MAX_M3U_BYTES = 64 * 1024 * 1024;
   var FAVORITES_KEY = 'cloud247tv:tizen:favorites';
   var SECURE_URL_KEY = 'playlist_url';
   var HOLD_MS = 650;
   var WINDOW_ROWS = 11;
+  var KEY_CHANNEL_UP = 427;
+  var KEY_CHANNEL_DOWN = 428;
+  var KEY_INFO = 457;
 
   var state = {
     playlistName: 'Spilleliste',
@@ -30,7 +33,8 @@
     enterHeldChannelKey: '',
     fullscreen: false,
     overlayTimer: null,
-    toastTimer: null
+    toastTimer: null,
+    lastChannelSwitchAt: 0
   };
 
   var el = {};
@@ -61,6 +65,19 @@
     el.playerChannel = $('playerChannel');
     el.playerError = $('playerError');
     el.toast = $('toast');
+  }
+
+  function registerRemoteKeys() {
+    try {
+      if (!window.tizen || !tizen.tvinputdevice) return;
+      if (typeof tizen.tvinputdevice.registerKeyBatch === 'function') {
+        tizen.tvinputdevice.registerKeyBatch(['ChannelUp', 'ChannelDown', 'Info']);
+      } else {
+        tizen.tvinputdevice.registerKey('ChannelUp');
+        tizen.tvinputdevice.registerKey('ChannelDown');
+        tizen.tvinputdevice.registerKey('Info');
+      }
+    } catch (_) {}
   }
 
   function safeJsonParse(value, fallback) {
@@ -578,6 +595,21 @@
     }
   }
 
+  function switchFullscreenChannel(delta) {
+    if (!state.fullscreen || !state.visibleChannels.length) {
+      showOverlay();
+      return;
+    }
+
+    var now = Date.now();
+    if (now - state.lastChannelSwitchAt < 250) return;
+    state.lastChannelSwitchAt = now;
+
+    var count = state.visibleChannels.length;
+    state.channelIndex = (state.channelIndex + delta + count) % count;
+    playChannel(state.visibleChannels[state.channelIndex]);
+  }
+
   function stopPlayer() {
     try { webapis.avplay.stop(); } catch (_) {}
     try { webapis.avplay.close(); } catch (_) {}
@@ -646,7 +678,27 @@
         stopPlayer();
         return;
       }
-      if (key === 13 || key === 37 || key === 38 || key === 39 || key === 40) {
+      if (key === 38) {
+        event.preventDefault();
+        switchFullscreenChannel(-1);
+        return;
+      }
+      if (key === 40) {
+        event.preventDefault();
+        switchFullscreenChannel(1);
+        return;
+      }
+      if (key === KEY_CHANNEL_UP) {
+        event.preventDefault();
+        switchFullscreenChannel(1);
+        return;
+      }
+      if (key === KEY_CHANNEL_DOWN) {
+        event.preventDefault();
+        switchFullscreenChannel(-1);
+        return;
+      }
+      if (key === 13 || key === 37 || key === 39 || key === KEY_INFO) {
         event.preventDefault();
         showOverlay();
       }
@@ -733,6 +785,7 @@
 
   function init() {
     bind();
+    registerRemoteKeys();
     document.addEventListener('keydown', keyDown, false);
     document.addEventListener('keyup', keyUp, false);
     el.newPair.onclick = startPairing;

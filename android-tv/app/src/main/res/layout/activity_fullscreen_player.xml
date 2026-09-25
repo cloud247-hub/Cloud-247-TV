@@ -65,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="OK viser info · Tilbake går til kanaloversikten"
+            android:text="↑/↓ eller CH+/− bytter kanal · OK viser info · Tilbake går til kanaloversikten"
             android:textColor="@color/muted"
             android:textSize="14sp" />
     </LinearLayout>

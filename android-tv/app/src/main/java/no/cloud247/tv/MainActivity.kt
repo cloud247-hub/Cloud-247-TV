@@ -599,6 +599,8 @@ class MainActivity : Activity() {
     }
 
     private fun openFullscreen(channel: Channel) {
+        val sessionChannels = (0 until channelAdapter.count).map { channelAdapter.getItem(it) }
+        FullscreenPlayerActivity.prepareSession(sessionChannels, channel)
         startActivity(Intent(this, FullscreenPlayerActivity::class.java).apply {
             putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
             putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
