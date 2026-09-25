@@ -17,7 +17,7 @@
 
     <LinearLayout
         android:id="@+id/fullscreenOverlay"
-        android:layout_width="560dp"
+        android:layout_width="620dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginLeft="34dp"
@@ -54,20 +54,84 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:textColor="@color/white"
             android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fullscreenProgram"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textColor="@color/white"
+            android:textSize="17sp"
             android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/fullscreenNextProgram"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:ellipsize="end"
+            android:textColor="@color/muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/fullscreenHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="↑/↓ eller CH+/− bytter kanal · Trykk eller swipe på skjermen · OK viser info"
+            android:layout_marginTop="7dp"
+            android:text="↑/↓ bytter kanal · → kanalvelger · Swipe og touch støttes"
             android:textColor="@color/muted"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/fullscreenChannelPanel"
+        android:layout_width="440dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:background="#F0061A2F"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/fullscreenChannelPanelTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="KANALER"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:paddingBottom="12dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Velg kanal uten å forlate fullskjerm"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:paddingBottom="10dp" />
+
+        <ListView
+            android:id="@+id/fullscreenChannelList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="4dp"
+            android:listSelector="@drawable/focus_list_item"
+            android:choiceMode="singleChoice"
+            android:focusable="true" />
     </LinearLayout>
 
     <LinearLayout
@@ -84,10 +148,10 @@
             android:id="@+id/fullscreenPrevious"
             android:layout_width="wrap_content"
             android:layout_height="56dp"
-            android:minWidth="150dp"
+            android:minWidth="145dp"
             android:gravity="center"
-            android:paddingLeft="18dp"
-            android:paddingRight="18dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
             android:text="‹  Forrige"
             android:textColor="@color/white"
             android:textSize="16sp"
@@ -99,14 +163,14 @@
             android:background="#553C5D78" />
 
         <TextView
-            android:id="@+id/fullscreenInfo"
+            android:id="@+id/fullscreenChannels"
             android:layout_width="wrap_content"
             android:layout_height="56dp"
-            android:minWidth="110dp"
+            android:minWidth="150dp"
             android:gravity="center"
-            android:paddingLeft="18dp"
-            android:paddingRight="18dp"
-            android:text="Info"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:text="Kanaler"
             android:textColor="@color/yellow"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -120,10 +184,10 @@
             android:id="@+id/fullscreenNext"
             android:layout_width="wrap_content"
             android:layout_height="56dp"
-            android:minWidth="150dp"
+            android:minWidth="145dp"
             android:gravity="center"
-            android:paddingLeft="18dp"
-            android:paddingRight="18dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
             android:text="Neste  ›"
             android:textColor="@color/white"
             android:textSize="16sp"

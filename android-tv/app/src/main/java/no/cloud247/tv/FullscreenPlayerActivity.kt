@@ -1,16 +1,24 @@
 package no.cloud247.tv
 
 import androidx.annotation.OptIn
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.Surface
+import android.view.SurfaceView
 import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.TextView
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -28,13 +36,19 @@ class FullscreenPlayerActivity : Activity() {
         const val EXTRA_NAME = "channel_name"
 
         private const val REMOTE_HINT =
-            "↑/↓ eller CH+/− bytter kanal · Trykk eller swipe på skjermen · OK viser info"
+            "↑/↓ bytter kanal · → kanalvelger · Swipe og touch støttes"
 
         private var preparedChannels: List<Channel> = emptyList()
         private var preparedIndex: Int = 0
+        private var preparedEpgData: EpgData = EpgData.EMPTY
 
-        fun prepareSession(channels: List<Channel>, selected: Channel) {
+        fun prepareSession(
+            channels: List<Channel>,
+            selected: Channel,
+            epgData: EpgData = EpgData.EMPTY
+        ) {
             preparedChannels = channels.toList()
+            preparedEpgData = epgData
             val selectedIndex = preparedChannels.indexOfFirst {
                 it.url == selected.url && it.name == selected.name
             }
@@ -44,19 +58,29 @@ class FullscreenPlayerActivity : Activity() {
 
     private lateinit var playerView: PlayerView
     private lateinit var nameView: TextView
+    private lateinit var programView: TextView
+    private lateinit var nextProgramView: TextView
     private lateinit var hintView: TextView
     private lateinit var clockView: TextView
     private lateinit var overlay: LinearLayout
     private lateinit var touchControls: LinearLayout
     private lateinit var previousTouch: TextView
-    private lateinit var infoTouch: TextView
+    private lateinit var channelsTouch: TextView
     private lateinit var nextTouch: TextView
+    private lateinit var channelPanel: LinearLayout
+    private lateinit var channelPanelTitle: TextView
+    private lateinit var channelListView: ListView
+    private lateinit var channelPanelAdapter: MiniChannelAdapter
+
     private val overlayHandler = Handler(Looper.getMainLooper())
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     private var player: ExoPlayer? = null
     private var channels: List<Channel> = emptyList()
+    private var epgData: EpgData = EpgData.EMPTY
     private var channelIndex: Int = 0
     private var lastChannelSwitchAt: Long = 0L
+    private var lastAutoFrameRate: Float = -1f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,17 +93,21 @@ class FullscreenPlayerActivity : Activity() {
 
         playerView = findViewById(R.id.fullscreenPlayer)
         nameView = findViewById(R.id.fullscreenName)
+        programView = findViewById(R.id.fullscreenProgram)
+        nextProgramView = findViewById(R.id.fullscreenNextProgram)
         hintView = findViewById(R.id.fullscreenHint)
         clockView = findViewById(R.id.fullscreenClock)
         overlay = findViewById(R.id.fullscreenOverlay)
         touchControls = findViewById(R.id.fullscreenTouchControls)
         previousTouch = findViewById(R.id.fullscreenPrevious)
-        infoTouch = findViewById(R.id.fullscreenInfo)
+        channelsTouch = findViewById(R.id.fullscreenChannels)
         nextTouch = findViewById(R.id.fullscreenNext)
-
-        configureTouchControls()
+        channelPanel = findViewById(R.id.fullscreenChannelPanel)
+        channelPanelTitle = findViewById(R.id.fullscreenChannelPanelTitle)
+        channelListView = findViewById(R.id.fullscreenChannelList)
 
         channels = preparedChannels
+        epgData = preparedEpgData
         channelIndex = preparedIndex.coerceIn(0, channels.lastIndex.coerceAtLeast(0))
 
         if (channels.isEmpty()) {
@@ -91,16 +119,29 @@ class FullscreenPlayerActivity : Activity() {
             }
         }
 
-        clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        channelPanelAdapter = MiniChannelAdapter()
+        channelListView.adapter = channelPanelAdapter
+        channelListView.choiceMode = ListView.CHOICE_MODE_SINGLE
+        channelListView.setOnItemClickListener { _, _, position, _ ->
+            selectChannelFromPanel(position)
+        }
+
+        configureTouchControls()
+        clockView.text = timeFormat.format(Date())
         playCurrentChannel()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        player?.play()
     }
 
     private fun configureTouchControls() {
         previousTouch.setOnClickListener { switchChannel(-1) }
         nextTouch.setOnClickListener { switchChannel(1) }
-        infoTouch.setOnClickListener { toggleOverlay() }
+        channelsTouch.setOnClickListener { showChannelPanel() }
 
-        val swipeThreshold = 110f * resources.displayMetrics.density
+        val swipeThreshold = 100f * resources.displayMetrics.density
         val gestureDetector = GestureDetector(
             this,
             object : GestureDetector.SimpleOnGestureListener() {
@@ -131,6 +172,11 @@ class FullscreenPlayerActivity : Activity() {
                     val deltaX = e2.x - start.x
                     val deltaY = e2.y - start.y
 
+                    if (abs(deltaY) >= swipeThreshold && abs(deltaY) > abs(deltaX)) {
+                        if (deltaY < 0f) showChannelPanel() else hideChannelPanel()
+                        return true
+                    }
+
                     if (abs(deltaX) < swipeThreshold || abs(deltaX) <= abs(deltaY)) {
                         return false
                     }
@@ -158,11 +204,13 @@ class FullscreenPlayerActivity : Activity() {
     }
 
     private fun playChannel(channel: Channel) {
+        clearAutoFrameRate()
         playerView.player = null
         player?.release()
         player = null
 
         nameView.text = channel.name.ifBlank { "Cloud247 TV" }
+        updateProgramInfo(channel)
         hintView.text = "Laster kanal …"
         showOverlay()
 
@@ -173,9 +221,16 @@ class FullscreenPlayerActivity : Activity() {
             session.player.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_READY) {
-                        hintView.text = REMOTE_HINT
+                        applyDetectedFrameRate(session.player)
+                        refreshHint()
                         scheduleOverlayHide()
                     }
+                }
+
+                override fun onTracksChanged(tracks: Tracks) {
+                    playerView.postDelayed({
+                        if (player === session.player) applyDetectedFrameRate(session.player)
+                    }, 150L)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -194,6 +249,32 @@ class FullscreenPlayerActivity : Activity() {
         }
     }
 
+    private fun updateProgramInfo(channel: Channel) {
+        val window = EpgLookup.window(channel, epgData)
+        val current = window.now
+        val next = window.next
+
+        if (current != null) {
+            val programs = EpgLookup.programsForChannel(channel, epgData)
+            val currentIndex = programs.indexOf(current)
+            val stop = if (currentIndex >= 0) EpgLookup.effectiveStop(programs, currentIndex) else current.stop
+            val stopText = stop?.let(timeFormat::format).orEmpty()
+            programView.visibility = View.VISIBLE
+            programView.text = "${timeFormat.format(current.start)}–$stopText  ${current.title}"
+        } else {
+            programView.visibility = View.GONE
+            programView.text = ""
+        }
+
+        if (next != null) {
+            nextProgramView.visibility = View.VISIBLE
+            nextProgramView.text = "Neste ${timeFormat.format(next.start)} · ${next.title}"
+        } else {
+            nextProgramView.visibility = View.GONE
+            nextProgramView.text = ""
+        }
+    }
+
     private fun switchChannel(delta: Int) {
         if (channels.size <= 1) {
             showOverlay()
@@ -205,6 +286,34 @@ class FullscreenPlayerActivity : Activity() {
         lastChannelSwitchAt = now
 
         channelIndex = (channelIndex + delta + channels.size) % channels.size
+        channelPanelAdapter.notifyDataSetChanged()
+        playCurrentChannel()
+    }
+
+    private fun showChannelPanel() {
+        if (channels.isEmpty()) return
+        overlayHandler.removeCallbacksAndMessages(null)
+        channelPanelTitle.text = "KANALER · ${channels.size}"
+        channelPanelAdapter.notifyDataSetChanged()
+        channelPanel.visibility = View.VISIBLE
+        channelListView.setSelection(channelIndex)
+        channelListView.post {
+            channelListView.requestFocus()
+            channelListView.setSelection(channelIndex)
+        }
+    }
+
+    private fun hideChannelPanel() {
+        if (channelPanel.visibility == View.GONE) return
+        channelPanel.visibility = View.GONE
+        playerView.requestFocus()
+        showOverlay()
+    }
+
+    private fun selectChannelFromPanel(position: Int) {
+        if (position !in channels.indices) return
+        channelIndex = position
+        hideChannelPanel()
         playCurrentChannel()
     }
 
@@ -217,11 +326,14 @@ class FullscreenPlayerActivity : Activity() {
         overlay.visibility = View.VISIBLE
         touchControls.visibility = View.VISIBLE
 
-        clockView.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        clockView.text = timeFormat.format(Date())
+        channels.getOrNull(channelIndex)?.let(::updateProgramInfo)
         scheduleOverlayHide()
     }
 
     private fun hideOverlay() {
+        if (channelPanel.visibility == View.VISIBLE) return
+
         overlay.animate().cancel()
         touchControls.animate().cancel()
 
@@ -239,6 +351,11 @@ class FullscreenPlayerActivity : Activity() {
     }
 
     private fun toggleOverlay() {
+        if (channelPanel.visibility == View.VISIBLE) {
+            hideChannelPanel()
+            return
+        }
+
         if (overlay.visibility == View.VISIBLE && overlay.alpha > 0.2f) {
             overlayHandler.removeCallbacksAndMessages(null)
             hideOverlay()
@@ -249,12 +366,115 @@ class FullscreenPlayerActivity : Activity() {
 
     private fun scheduleOverlayHide() {
         overlayHandler.removeCallbacksAndMessages(null)
-        overlayHandler.postDelayed({
-            hideOverlay()
-        }, 3000L)
+        overlayHandler.postDelayed({ hideOverlay() }, 3500L)
+    }
+
+    private fun applyDetectedFrameRate(targetPlayer: ExoPlayer) {
+        val frameRate = targetPlayer.videoFormat?.frameRate ?: -1f
+        if (!frameRate.isFinite() || frameRate < 10f || frameRate > 240f) return
+        if (abs(frameRate - lastAutoFrameRate) < 0.01f) return
+
+        val surfaceView = playerView.videoSurfaceView as? SurfaceView
+        val surface = surfaceView?.holder?.surface
+
+        try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && surface?.isValid == true -> {
+                    surface.setFrameRate(
+                        frameRate,
+                        Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
+                        Surface.CHANGE_FRAME_RATE_ALWAYS
+                    )
+                    lastAutoFrameRate = frameRate
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && surface?.isValid == true -> {
+                    surface.setFrameRate(
+                        frameRate,
+                        Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE
+                    )
+                    lastAutoFrameRate = frameRate
+                }
+                else -> {
+                    applyLegacyDisplayMode(frameRate)
+                }
+            }
+        } catch (_: Exception) {
+            applyLegacyDisplayMode(frameRate)
+        }
+
+        refreshHint()
+    }
+
+    private fun applyLegacyDisplayMode(frameRate: Float) {
+        val display = window.decorView.display ?: return
+        val current = display.mode
+        val sameResolution = display.supportedModes.filter {
+            it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
+        }
+        val candidates = if (sameResolution.isNotEmpty()) sameResolution else display.supportedModes.toList()
+        val best = candidates.minByOrNull { mode ->
+            (1..5).minOf { multiplier ->
+                abs(mode.refreshRate - frameRate * multiplier)
+            }
+        } ?: return
+
+        val score = (1..5).minOf { multiplier ->
+            abs(best.refreshRate - frameRate * multiplier)
+        }
+        if (score > 0.75f) return
+
+        val attributes = window.attributes
+        attributes.preferredDisplayModeId = best.modeId
+        window.attributes = attributes
+        lastAutoFrameRate = frameRate
+    }
+
+    private fun clearAutoFrameRate() {
+        val surface = (playerView.videoSurfaceView as? SurfaceView)?.holder?.surface
+        try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && surface?.isValid == true -> {
+                    surface.setFrameRate(
+                        0f,
+                        Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
+                        Surface.CHANGE_FRAME_RATE_ALWAYS
+                    )
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && surface?.isValid == true -> {
+                    surface.setFrameRate(0f, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                }
+            }
+        } catch (_: Exception) {
+        }
+
+        val attributes = window.attributes
+        attributes.preferredDisplayModeId = 0
+        window.attributes = attributes
+        lastAutoFrameRate = -1f
+    }
+
+    private fun refreshHint() {
+        val afr = if (lastAutoFrameRate > 0f) {
+            " · AFR ${String.format(Locale.US, "%.2f", lastAutoFrameRate).trimEnd('0').trimEnd('.')} fps"
+        } else {
+            ""
+        }
+        hintView.text = REMOTE_HINT + afr
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (channelPanel.visibility == View.VISIBLE) {
+            return when (keyCode) {
+                KeyEvent.KEYCODE_BACK,
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_MENU -> {
+                    hideChannelPanel()
+                    true
+                }
+                else -> super.onKeyDown(keyCode, event)
+            }
+        }
+
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> {
                 if ((event?.repeatCount ?: 0) == 0) switchChannel(-1)
@@ -276,12 +496,16 @@ class FullscreenPlayerActivity : Activity() {
                 true
             }
 
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_MENU -> {
+                showChannelPanel()
+                true
+            }
+
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_INFO,
-            KeyEvent.KEYCODE_MENU -> {
+            KeyEvent.KEYCODE_INFO -> {
                 showOverlay()
                 true
             }
@@ -302,9 +526,34 @@ class FullscreenPlayerActivity : Activity() {
 
     override fun onDestroy() {
         overlayHandler.removeCallbacksAndMessages(null)
+        clearAutoFrameRate()
         playerView.player = null
         player?.release()
         player = null
         super.onDestroy()
+    }
+
+    private inner class MiniChannelAdapter : BaseAdapter() {
+        override fun getCount(): Int = channels.size
+        override fun getItem(position: Int): Channel = channels[position]
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val view = convertView ?: LayoutInflater.from(this@FullscreenPlayerActivity)
+                .inflate(R.layout.item_fullscreen_channel, parent, false)
+
+            val channel = getItem(position)
+            val name = view.findViewById<TextView>(R.id.fullscreenChannelName)
+            val program = view.findViewById<TextView>(R.id.fullscreenChannelProgram)
+            val nowProgram = EpgLookup.window(channel, epgData).now
+
+            name.text = if (position == channelIndex) "▶ ${channel.name}" else channel.name
+            name.setTextColor(
+                getColor(if (position == channelIndex) R.color.yellow else R.color.white)
+            )
+            program.text = nowProgram?.title ?: channel.group
+
+            return view
+        }
     }
 }

@@ -217,7 +217,13 @@ class MainActivity : Activity() {
         }
 
         pickPlaylistButton.setOnClickListener { pickFile(REQUEST_M3U, arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain", "*/*")) }
-        epgButton.setOnClickListener { showEpgDialog() }
+        epgButton.setOnClickListener {
+            if (epgData.programsById.isEmpty()) showEpgDialog() else openEpgGuide()
+        }
+        epgButton.setOnLongClickListener {
+            showEpgDialog()
+            true
+        }
         changePlaylistButton.setOnClickListener { showSourcePanel() }
 
         channelSearch.addTextChangedListener(object : TextWatcher {
@@ -360,6 +366,10 @@ class MainActivity : Activity() {
         sourcePanel.visibility = View.GONE
         tvPanel.visibility = View.VISIBLE
         groupList.requestFocus()
+
+        if (parsed.epgUrl.isNotBlank()) {
+            loadEpgFromUrl(parsed.epgUrl, openGuideOnSuccess = false)
+        }
     }
 
     private fun renderGroups() {
@@ -534,7 +544,7 @@ class MainActivity : Activity() {
             .setView(wrapper)
             .setPositiveButton("Last EPG") { _, _ ->
                 val url = input.text.toString().trim()
-                if (url.isNotBlank()) loadEpgFromUrl(url)
+                if (url.isNotBlank()) loadEpgFromUrl(url, openGuideOnSuccess = true)
             }
             .setNeutralButton("Velg XMLTV-fil") { _, _ ->
                 pickFile(REQUEST_EPG, arrayOf("application/xml", "text/xml", "text/plain", "*/*"))
@@ -543,20 +553,26 @@ class MainActivity : Activity() {
             .show()
     }
 
-    private fun loadEpgFromUrl(url: String) {
+    private fun loadEpgFromUrl(url: String, openGuideOnSuccess: Boolean) {
         Toast.makeText(this, "Laster XMLTV / EPG …", Toast.LENGTH_SHORT).show()
         executor.execute {
             try {
                 val bytes = NetworkClient.fetchBytes(url, MAX_EPG_BYTES)
                 val parsed = XmlTvParser.parse(bytes, playlist.channels)
-                runOnUiThread { applyEpg(parsed) }
+                runOnUiThread { applyEpg(parsed, openGuideOnSuccess) }
             } catch (error: Exception) {
-                runOnUiThread { Toast.makeText(this, "Kunne ikke laste EPG: ${safeMessage(error)}", Toast.LENGTH_LONG).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Kunne ikke laste EPG: ${safeMessage(error)}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
 
-    private fun applyEpg(data: EpgData) {
+    private fun applyEpg(data: EpgData, openGuideOnSuccess: Boolean = false) {
         epgData = data
         val count = data.programsById.size
         Toast.makeText(
@@ -565,42 +581,25 @@ class MainActivity : Activity() {
             Toast.LENGTH_SHORT
         ).show()
         renderChannels()
+        if (count > 0 && openGuideOnSuccess) openEpgGuide()
     }
 
     private fun programmeWindow(channel: Channel): ProgrammeWindow {
-        val candidates = linkedSetOf<String>()
-        if (channel.tvgId.isNotBlank()) candidates += channel.tvgId
-        for (name in listOf(channel.tvgName, channel.name)) {
-            if (name.isBlank()) continue
-            epgData.aliases[name]?.let(candidates::add)
-            epgData.aliases[name.lowercase(Locale.ROOT)]?.let(candidates::add)
-        }
+        return EpgLookup.window(channel, epgData)
+    }
 
-        val programs = candidates.firstNotNullOfOrNull { epgData.programsById[it] }
-            ?: return ProgrammeWindow(null, null)
-
-        val now = Date()
-        var current: Program? = null
-        var next: Program? = null
-        for (index in programs.indices) {
-            val program = programs[index]
-            val effectiveStop = program.stop ?: programs.getOrNull(index + 1)?.start
-            if (!program.start.after(now) && (effectiveStop == null || now.before(effectiveStop))) {
-                current = program
-                next = programs.getOrNull(index + 1)
-                break
-            }
-            if (program.start.after(now)) {
-                next = program
-                break
-            }
+    private fun openEpgGuide() {
+        if (epgData.programsById.isEmpty()) {
+            showEpgDialog()
+            return
         }
-        return ProgrammeWindow(current, next)
+        EpgGuideActivity.prepareSession(playlist.channels, epgData, selectedChannel)
+        startActivity(Intent(this, EpgGuideActivity::class.java))
     }
 
     private fun openFullscreen(channel: Channel) {
         val sessionChannels = (0 until channelAdapter.count).map { channelAdapter.getItem(it) }
-        FullscreenPlayerActivity.prepareSession(sessionChannels, channel)
+        FullscreenPlayerActivity.prepareSession(sessionChannels, channel, epgData)
         startActivity(Intent(this, FullscreenPlayerActivity::class.java).apply {
             putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
             putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
@@ -668,7 +667,7 @@ class MainActivity : Activity() {
             try {
                 val bytes = readUriLimited(uri, MAX_EPG_BYTES)
                 val parsed = XmlTvParser.parse(bytes, playlist.channels)
-                runOnUiThread { applyEpg(parsed) }
+                runOnUiThread { applyEpg(parsed, openGuideOnSuccess = true) }
             } catch (error: Exception) {
                 runOnUiThread { Toast.makeText(this, "Kunne ikke lese XMLTV-filen: ${safeMessage(error)}", Toast.LENGTH_LONG).show() }
             }
@@ -717,6 +716,11 @@ class MainActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (tvPanel.visibility == View.VISIBLE && keyCode == KeyEvent.KEYCODE_GUIDE) {
+            if (epgData.programsById.isEmpty()) showEpgDialog() else openEpgGuide()
+            return true
+        }
+
         if (tvPanel.visibility == View.VISIBLE && keyCode == KeyEvent.KEYCODE_BACK) {
             return when {
                 channelSearch.hasFocus() || channelList.hasFocus() -> {
