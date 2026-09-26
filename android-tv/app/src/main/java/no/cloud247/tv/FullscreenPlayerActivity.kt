@@ -224,6 +224,26 @@ class FullscreenPlayerActivity : FragmentActivity() {
         channelPanelTitle = findViewById(R.id.fullscreenChannelPanelTitle)
         channelListView = findViewById(R.id.fullscreenChannelList)
 
+        castButton = findViewById(R.id.fullscreenCastButton)
+        castRemoteRouteButton = findViewById(R.id.castRemoteRouteButton)
+        castRemoteRoot = findViewById(R.id.castRemoteRoot)
+        castRemoteDevice = findViewById(R.id.castRemoteDevice)
+        castRemoteName = findViewById(R.id.castRemoteName)
+        castRemoteProgram = findViewById(R.id.castRemoteProgram)
+        castRemoteNextProgram = findViewById(R.id.castRemoteNextProgram)
+        castRemotePrevious = findViewById(R.id.castRemotePrevious)
+        castRemotePlayPause = findViewById(R.id.castRemotePlayPause)
+        castRemoteNext = findViewById(R.id.castRemoteNext)
+        castRemoteSleep = findViewById(R.id.castRemoteSleep)
+        castRemoteStop = findViewById(R.id.castRemoteStop)
+        castRemoteContentTitle = findViewById(R.id.castRemoteContentTitle)
+        castRemoteContentStatus = findViewById(R.id.castRemoteContentStatus)
+        castRemoteContentList = findViewById(R.id.castRemoteContentList)
+        castTabRemote = findViewById(R.id.castTabRemote)
+        castTabChannels = findViewById(R.id.castTabChannels)
+        castTabGuide = findViewById(R.id.castTabGuide)
+        castTabSport = findViewById(R.id.castTabSport)
+
         channels = preparedChannels
         epgData = preparedEpgData
         channelIndex = preparedIndex.coerceIn(0, channels.lastIndex.coerceAtLeast(0))
@@ -244,6 +264,24 @@ class FullscreenPlayerActivity : FragmentActivity() {
             selectChannelFromPanel(position)
         }
 
+        castRemoteAdapter = CastRemoteAdapter()
+        castRemoteContentList.adapter = castRemoteAdapter
+        castRemoteContentList.setOnItemClickListener { _, _, position, _ ->
+            val row = castRemoteAdapter.getItem(position)
+            val target = row.channelIndex
+            if (target != null && target in channels.indices) {
+                channelIndex = target
+                playCurrentChannel()
+            } else if (castTab == CastTab.SPORT) {
+                android.widget.Toast.makeText(
+                    this,
+                    "Ingen sikker kanal-match for denne sportshendelsen ennå.",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        configureCasting()
         configureTouchControls()
         configureNightMode()
         applyNightMode()
@@ -256,7 +294,47 @@ class FullscreenPlayerActivity : FragmentActivity() {
         super.onStart()
         restoreSleepTimer()
         applyNightMode()
-        player?.play()
+        if (!isCasting) player?.play()
+    }
+
+    private fun configureCasting() {
+        castSupported = !DeviceProfile.isTelevision(this)
+        if (!castSupported) {
+            castButton.visibility = View.GONE
+            castRemoteRouteButton.visibility = View.GONE
+            return
+        }
+
+        try {
+            MediaRouteButtonFactory.setUpMediaRouteButton(this, castButton)
+            MediaRouteButtonFactory.setUpMediaRouteButton(this, castRemoteRouteButton)
+            castButton.visibility = View.VISIBLE
+        } catch (_: Exception) {
+            castSupported = false
+            castButton.visibility = View.GONE
+            castRemoteRouteButton.visibility = View.GONE
+        }
+
+        castRemotePrevious.setOnClickListener { switchChannel(-1) }
+        castRemoteNext.setOnClickListener { switchChannel(1) }
+        castRemotePlayPause.setOnClickListener {
+            if (player?.isPlaying == true) player?.pause() else player?.play()
+            refreshCastRemoteControls()
+        }
+        castRemoteSleep.setOnClickListener {
+            cycleSleepTimer()
+            refreshNightPanel()
+            refreshCastRemotePanel()
+        }
+        castRemoteStop.setOnClickListener {
+            player?.stop()
+            endCastSession()
+        }
+
+        castTabRemote.setOnClickListener { setCastTab(CastTab.REMOTE) }
+        castTabChannels.setOnClickListener { setCastTab(CastTab.CHANNELS) }
+        castTabGuide.setOnClickListener { setCastTab(CastTab.GUIDE) }
+        castTabSport.setOnClickListener { setCastTab(CastTab.SPORT) }
     }
 
     private fun configureTouchControls() {
