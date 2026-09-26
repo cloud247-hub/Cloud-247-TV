@@ -56,7 +56,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="v1.5.2"
+            android:text="v1.6.0"
             android:textColor="@color/muted"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -108,7 +108,7 @@
                     android:layout_width="560dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="22dp"
-                    android:text="Legg inn M3U-adressen direkte på Android TV. Avspillingen går fra TV-en til IPTV-leverandøren – uten nettleser-CORS og uten Cloudflare som mellomledd."
+                    android:text="Koble til med QR, M3U eller Xtream Codes (XC). Avspillingen går direkte fra enheten til IPTV-leverandøren – uten Cloudflare som mellomledd."
                     android:textColor="@color/muted"
                     android:textSize="20sp"
                     android:lineSpacingExtra="4dp" />
@@ -256,6 +256,17 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <Button
+                    android:id="@+id/xtreamLoginButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/focus_button"
+                    android:text="Xtream Codes (XC) login"
+                    android:textColor="@color/button_text"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
@@ -276,7 +287,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginLeft="8dp"
-                        android:text="QR er enklest. M3U-adressen lagres kryptert lokalt på TV-en etter vellykket tilkobling."
+                        android:text="QR, M3U og XC støttes. Den ferdige spillelisteadressen lagres kryptert lokalt etter vellykket tilkobling."
                         android:textColor="@color/muted"
                         android:textSize="12sp"
                         android:maxLines="2" />
