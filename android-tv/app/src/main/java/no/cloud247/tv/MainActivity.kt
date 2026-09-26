@@ -42,6 +42,10 @@ class MainActivity : Activity() {
         private const val PREFS = "cloud247_tv"
         private const val PREF_FAVORITES = "favorites"
 
+        const val EXTRA_SPORTS_CHANNEL_ID = "sports_channel_id"
+        const val EXTRA_SPORTS_CHANNEL_NAME = "sports_channel_name"
+        const val EXTRA_SPORTS_EVENT_TITLE = "sports_event_title"
+
         private val NORWAY_TOKEN_REGEX =
             Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])")
         private val TENNIS_TOKEN_REGEX =
@@ -69,6 +73,7 @@ class MainActivity : Activity() {
     private lateinit var playlistTitle: TextView
     private lateinit var playlistStats: TextView
     private lateinit var epgButton: Button
+    private lateinit var sportsButton: Button
     private lateinit var changePlaylistButton: Button
     private lateinit var groupList: ListView
     private lateinit var channelList: ListView
@@ -93,11 +98,14 @@ class MainActivity : Activity() {
     private var pairingGeneration = 0
     private val favoriteHoldHandler = Handler(Looper.getMainLooper())
     private var favoriteHoldTriggered = false
+    private var pendingSportsChannelId: String? = null
+    private var pendingSportsChannelName: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         bindViews()
+        captureSportsIntent(intent)
         loadFavorites()
         configureLists()
         configureActions()
@@ -114,6 +122,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         NightModePreferences.applyWindowBrightness(this)
+        SportsAlertScheduler.sync(this)
     }
 
     private fun bindViews() {
@@ -131,6 +140,8 @@ class MainActivity : Activity() {
         playlistTitle = findViewById(R.id.playlistTitle)
         playlistStats = findViewById(R.id.playlistStats)
         epgButton = findViewById(R.id.epgButton)
+        sportsButton = findViewById(R.id.sportsButton)
+        sportsButton.visibility = if (DeviceProfile.isTablet(this)) View.VISIBLE else View.GONE
         changePlaylistButton = findViewById(R.id.changePlaylistButton)
         groupList = findViewById(R.id.groupList)
         channelList = findViewById(R.id.channelList)
@@ -228,6 +239,11 @@ class MainActivity : Activity() {
         epgButton.setOnLongClickListener {
             showEpgDialog()
             true
+        }
+        sportsButton.setOnClickListener {
+            if (DeviceProfile.isTablet(this)) {
+                startActivity(Intent(this, SportsAlertsActivity::class.java))
+            }
         }
         changePlaylistButton.setOnClickListener { showSourcePanel() }
 
@@ -373,8 +389,12 @@ class MainActivity : Activity() {
         groupList.requestFocus()
 
         if (parsed.epgUrl.isNotBlank()) {
+            SportsPreferences.setEpgUrl(this, parsed.epgUrl)
+            SportsAlertScheduler.sync(this)
             loadEpgFromUrl(parsed.epgUrl, openGuideOnSuccess = false)
         }
+
+        tryOpenPendingSportsChannel()
     }
 
     private fun renderGroups() {
@@ -549,7 +569,11 @@ class MainActivity : Activity() {
             .setView(wrapper)
             .setPositiveButton("Last EPG") { _, _ ->
                 val url = input.text.toString().trim()
-                if (url.isNotBlank()) loadEpgFromUrl(url, openGuideOnSuccess = true)
+                if (url.isNotBlank()) {
+                    SportsPreferences.setEpgUrl(this, url)
+                    SportsAlertScheduler.sync(this)
+                    loadEpgFromUrl(url, openGuideOnSuccess = true)
+                }
             }
             .setNeutralButton("Velg XMLTV-fil") { _, _ ->
                 pickFile(REQUEST_EPG, arrayOf("application/xml", "text/xml", "text/plain", "*/*"))
@@ -610,6 +634,52 @@ class MainActivity : Activity() {
             putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
             putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
         })
+    }
+
+    private fun captureSportsIntent(sourceIntent: Intent?) {
+        pendingSportsChannelId = sourceIntent
+            ?.getStringExtra(EXTRA_SPORTS_CHANNEL_ID)
+            ?.takeIf { it.isNotBlank() }
+        pendingSportsChannelName = sourceIntent
+            ?.getStringExtra(EXTRA_SPORTS_CHANNEL_NAME)
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        captureSportsIntent(intent)
+        if (playlist.channels.isNotEmpty()) {
+            tryOpenPendingSportsChannel()
+        }
+    }
+
+    private fun tryOpenPendingSportsChannel() {
+        val channelId = pendingSportsChannelId
+        val channelName = pendingSportsChannelName
+        if (channelId.isNullOrBlank() && channelName.isNullOrBlank()) return
+
+        val channel = playlist.channels.firstOrNull {
+            channelId != null && it.tvgId.equals(channelId, ignoreCase = true)
+        } ?: playlist.channels.firstOrNull {
+            val target = channelName.orEmpty().trim()
+            target.isNotBlank() && (
+                it.name.equals(target, ignoreCase = true) ||
+                    it.tvgName.equals(target, ignoreCase = true)
+                )
+        }
+
+        if (channel != null) {
+            pendingSportsChannelId = null
+            pendingSportsChannelName = null
+            selectChannel(channel)
+            val sessionChannels = playlist.channels
+            FullscreenPlayerActivity.prepareSession(sessionChannels, channel, epgData)
+            startActivity(Intent(this, FullscreenPlayerActivity::class.java).apply {
+                putExtra(FullscreenPlayerActivity.EXTRA_URL, channel.url)
+                putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
+            })
+        }
     }
 
     private fun showSourcePanel() {

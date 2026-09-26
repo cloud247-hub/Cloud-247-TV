@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/navy">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="48dp"
+        android:paddingRight="48dp"
+        android:paddingTop="30dp"
+        android:paddingBottom="36dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SPORTSVARSLER"
+            android:textColor="@color/yellow"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.10" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Følg det du faktisk vil se."
+            android:textColor="@color/white"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Kun Android-nettbrett. Cloud247 TV søker i XMLTV-guiden etter favorittene dine og kobler varslet til kanalen som faktisk viser sendingen."
+            android:textColor="@color/muted"
+            android:textSize="15sp"
+            android:lineSpacingExtra="3dp" />
+
+        <CheckBox
+            android:id="@+id/sportsEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="22dp"
+            android:text="Aktiver sportsvarsler"
+            android:textColor="@color/white"
+            android:textSize="17sp"
+            android:buttonTint="@color/yellow" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="FAVORITTLAG"
+            android:textColor="@color/yellow"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/sportsTeams"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="7dp"
+            android:background="@drawable/input_bg"
+            android:hint="Liverpool, Arsenal, Bodø/Glimt …"
+            android:inputType="textCapWords"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textColorHint="@color/muted"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="FAVORITT TENNISSPILLERE"
+            android:textColor="@color/yellow"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/sportsPlayers"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="7dp"
+            android:background="@drawable/input_bg"
+            android:hint="Casper Ruud, Carlos Alcaraz …"
+            android:inputType="textCapWords"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textColorHint="@color/muted"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="FAVORITTLIGAER"
+            android:textColor="@color/yellow"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/sportsLeagues"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="7dp"
+            android:background="@drawable/input_bg"
+            android:hint="Champions League, Eliteserien …"
+            android:inputType="textCapWords"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textColorHint="@color/muted"
+            android:textSize="16sp" />
+
+        <CheckBox
+            android:id="@+id/sportsPremierLeague"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="14dp"
+            android:text="Premier League"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:buttonTint="@color/yellow" />
+
+        <CheckBox
+            android:id="@+id/sportsTennisMajors"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Tennis Majors · Australian Open · Roland-Garros · Wimbledon · US Open"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:buttonTint="@color/yellow" />
+
+        <Button
+            android:id="@+id/sportsLeadTime"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/focus_button"
+            android:text="Varsle omtrent 30 min før"
+            android:textColor="@color/button_text"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/sportsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Av"
+            android:textColor="@color/muted"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="18dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/sportsSave"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:background="@drawable/focus_button"
+                android:text="Lagre"
+                android:textColor="@color/button_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/sportsCheckNow"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="10dp"
+                android:background="@drawable/focus_button"
+                android:text="Sjekk nå"
+                android:textColor="@color/button_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/sportsBack"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="10dp"
+                android:background="@drawable/focus_button"
+                android:text="Tilbake"
+                android:textColor="@color/button_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Tips: Smart matching er avhengig av at leverandørens XMLTV inneholder lag-, spiller- eller turneringsnavnet. Bakgrunnssjekken kjøres omtrent hvert 15. minutt."
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp" />
+    </LinearLayout>
+</ScrollView>

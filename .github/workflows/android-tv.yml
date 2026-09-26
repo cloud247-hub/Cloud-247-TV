@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.3.0.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.4.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.3.0
-          path: Cloud247-TV-Android-v1.3.0.apk
+          name: Cloud247-TV-Android-v1.4.0
+          path: Cloud247-TV-Android-v1.4.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,10 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.3.0 adds Night Mode with a warm/dark video filter, reduced in-app playback volume, screen dimming, persistent settings, and a 30/60/90/120 minute sleep timer with remote and touch controls."
-          if gh release view android-tv-v1.3.0 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk --clobber
-            gh release edit android-tv-v1.3.0 --title "Cloud247 TV Android v1.3.0" --notes "$RELEASE_NOTES"
+          RELEASE_NOTES="Android v1.4.0 adds tablet-only Sports Alerts with favorite football teams, favorite tennis players, favorite leagues, Premier League and Tennis Majors. Smart channel matching scans XMLTV in the background and notifications can open the matched channel directly."
+          if gh release view android-tv-v1.4.0 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.4.0 Cloud247-TV-Android-v1.4.0.apk --clobber
+            gh release edit android-tv-v1.4.0 --title "Cloud247 TV Android v1.4.0" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk --title "Cloud247 TV Android v1.3.0" --notes "$RELEASE_NOTES"
+            gh release create android-tv-v1.4.0 Cloud247-TV-Android-v1.4.0.apk --title "Cloud247 TV Android v1.4.0" --notes "$RELEASE_NOTES"
           fi

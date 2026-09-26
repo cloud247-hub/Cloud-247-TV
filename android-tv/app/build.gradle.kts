@@ -10,8 +10,8 @@ android {
         applicationId = "no.cloud247.tv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 10300
-        versionName = "1.3.0"
+        versionCode = 10400
+        versionName = "1.4.0"
     }
 
     buildTypes {
@@ -37,4 +37,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-ui:$media3")
     implementation("com.google.zxing:core:3.5.4")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
+    implementation("androidx.core:core-ktx:1.17.0")
 }
