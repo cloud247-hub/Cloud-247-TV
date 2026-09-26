@@ -27,18 +27,14 @@ object EspnGolfClient {
     )
 
     fun fetch(config: SportsHubConfig): SportsHubResponse {
-        val tours = if (config.golfTours.isNotEmpty()) {
-            config.golfTours
-        } else {
-            setOf("pga", "eur", "lpga", "liv")
-        }
+        val tours = setOf("pga", "eur", "lpga", "liv")
 
         val formatter = SimpleDateFormat("yyyyMMdd", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val from = formatter.format(Date())
         val to = formatter.format(
-            Date(System.currentTimeMillis() + 14L * 24L * 60L * 60L * 1000L)
+            Date(System.currentTimeMillis() + 28L * 24L * 60L * 60L * 1000L)
         )
 
         val events = tours
@@ -117,7 +113,10 @@ object EspnGolfClient {
                 matchName = tourLabel(tour)
             }
 
-            if (matchType.isBlank()) continue
+            if (matchType.isBlank()) {
+                matchType = "golf_all"
+                matchName = tourLabel(tour)
+            }
 
             out += SportsHubEvent(
                 id = "golf:$tour:${raw.optString("id").ifBlank { title + ":" + start.time }}",
@@ -177,7 +176,7 @@ object EspnGolfClient {
             useCaches = true
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.2")
+            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.4")
         }
 
         try {
