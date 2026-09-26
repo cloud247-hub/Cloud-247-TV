@@ -1,9 +1,12 @@
 package no.cloud247.tv
 
 import androidx.annotation.OptIn
+import androidx.fragment.app.FragmentActivity
+import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.MediaRouteButtonFactory
+import androidx.media3.common.DeviceInfo
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
-import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -24,13 +27,15 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import androidx.mediarouter.app.MediaRouteButton
+import com.google.android.gms.cast.framework.CastContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
 @OptIn(markerClass = [UnstableApi::class])
-class FullscreenPlayerActivity : Activity() {
+class FullscreenPlayerActivity : FragmentActivity() {
     companion object {
         const val EXTRA_URL = "stream_url"
         const val EXTRA_NAME = "channel_name"
@@ -81,9 +86,31 @@ class FullscreenPlayerActivity : Activity() {
     private lateinit var channelListView: ListView
     private lateinit var channelPanelAdapter: MiniChannelAdapter
 
+    private lateinit var castButton: MediaRouteButton
+    private lateinit var castRemoteRouteButton: MediaRouteButton
+    private lateinit var castRemoteRoot: LinearLayout
+    private lateinit var castRemoteDevice: TextView
+    private lateinit var castRemoteName: TextView
+    private lateinit var castRemoteProgram: TextView
+    private lateinit var castRemoteNextProgram: TextView
+    private lateinit var castRemotePrevious: TextView
+    private lateinit var castRemotePlayPause: TextView
+    private lateinit var castRemoteNext: TextView
+    private lateinit var castRemoteSleep: TextView
+    private lateinit var castRemoteStop: TextView
+    private lateinit var castRemoteContentTitle: TextView
+    private lateinit var castRemoteContentStatus: TextView
+    private lateinit var castRemoteContentList: ListView
+    private lateinit var castTabRemote: TextView
+    private lateinit var castTabChannels: TextView
+    private lateinit var castTabGuide: TextView
+    private lateinit var castTabSport: TextView
+    private lateinit var castRemoteAdapter: CastRemoteAdapter
+
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val sleepHandler = Handler(Looper.getMainLooper())
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val castEventFormat = SimpleDateFormat("EEE d. MMM · HH:mm", Locale.getDefault())
 
     private val sleepRunnable = Runnable {
         NightModePreferences.clearSleepTimer(this)
@@ -113,12 +140,56 @@ class FullscreenPlayerActivity : Activity() {
         }
     }
 
-    private var player: ExoPlayer? = null
+    private var player: Player? = null
+    private var localPlayer: ExoPlayer? = null
+    private var castPlayer: CastPlayer? = null
+    private var castSupported: Boolean = false
+    private var isCasting: Boolean = false
+    private var castTab: CastTab = CastTab.REMOTE
     private var channels: List<Channel> = emptyList()
     private var epgData: EpgData = EpgData.EMPTY
     private var channelIndex: Int = 0
     private var lastChannelSwitchAt: Long = 0L
     private var lastAutoFrameRate: Float = -1f
+
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) {
+                if (!isCasting) {
+                    localPlayer?.let(::applyDetectedFrameRate)
+                }
+                refreshHint()
+                refreshCastRemotePanel()
+                scheduleOverlayHide()
+            }
+        }
+
+        override fun onTracksChanged(tracks: Tracks) {
+            if (!isCasting) {
+                playerView.postDelayed({
+                    localPlayer?.let(::applyDetectedFrameRate)
+                }, 150L)
+            }
+        }
+
+        override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
+            updateCastMode(deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE)
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            refreshCastRemoteControls()
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            hintView.text = "Avspillingsfeil: ${error.errorCodeName}"
+            if (isCasting) {
+                castRemoteContentStatus.text =
+                    "Cast-feil: ${error.errorCodeName}. Streamen kan være inkompatibel med Chromecast."
+            } else {
+                showOverlay()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
