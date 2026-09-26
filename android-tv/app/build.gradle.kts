@@ -8,10 +8,10 @@ android {
 
     defaultConfig {
         applicationId = "no.cloud247.tv"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 36
-        versionCode = 10702
-        versionName = "1.7.2"
+        versionCode = 10703
+        versionName = "1.6.1"
     }
 
     buildTypes {
@@ -30,15 +30,11 @@ android {
     }
 }
 
-
 dependencies {
     val media3 = "1.11.1"
     implementation("androidx.media3:media3-exoplayer:$media3")
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-ui:$media3")
-    implementation("androidx.media3:media3-session:$media3")
-    implementation("androidx.media3:media3-cast:$media3")
-    implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("com.google.zxing:core:3.5.4")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.core:core-ktx:1.17.0")

@@ -259,17 +259,13 @@ class SportsHubActivity : Activity() {
     private fun refresh() {
         saveFavorites(silent = true)
         val config = SportsHubPreferences.load(this)
-
-        status.text = if (
-            config.footballTeams.isEmpty() &&
-            config.footballLeagues.isEmpty() &&
-            config.tennisPlayers.isEmpty() &&
-            config.golfPlayers.isEmpty()
-        ) {
-            "Henter alle kommende fotball-, tennis- og golfhendelser …"
-        } else {
-            "Henter kommende sport og favoritter …"
+        if (!config.hasFavorites) {
+            status.text = "Legg til et lag, en spiller, liga eller tour først."
+            adapter.setRows(emptyList())
+            return
         }
+
+        status.text = "Henter kommende fotball, tennis og golf …"
         executor.execute {
             try {
                 val response = SportsApiClient.fetchUpcoming(config)
@@ -299,9 +295,9 @@ class SportsHubActivity : Activity() {
         adapter.setRows(rows)
 
         status.text = if (rows.isEmpty()) {
-            "Ingen kommende sportshendelser tilgjengelig akkurat nå."
+            "Ingen kommende treff for favorittene dine akkurat nå."
         } else {
-            "${rows.size} kommende · favoritter brukes til varsler, ikke som visningsfilter."
+            "${rows.size} kommende · grønn kanaltekst betyr sikker EPG-match."
         }
 
         sources.text = listOf(

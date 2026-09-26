@@ -1,12 +1,9 @@
 package no.cloud247.tv
 
 import androidx.annotation.OptIn
-import androidx.fragment.app.FragmentActivity
-import androidx.media3.cast.CastPlayer
-import androidx.media3.cast.MediaRouteButtonFactory
-import androidx.media3.common.DeviceInfo
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -27,15 +24,13 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import androidx.mediarouter.app.MediaRouteButton
-import com.google.android.gms.cast.framework.CastContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
 @OptIn(markerClass = [UnstableApi::class])
-class FullscreenPlayerActivity : FragmentActivity() {
+class FullscreenPlayerActivity : Activity() {
     companion object {
         const val EXTRA_URL = "stream_url"
         const val EXTRA_NAME = "channel_name"
@@ -86,50 +81,18 @@ class FullscreenPlayerActivity : FragmentActivity() {
     private lateinit var channelListView: ListView
     private lateinit var channelPanelAdapter: MiniChannelAdapter
 
-    private lateinit var castButton: MediaRouteButton
-    private lateinit var castRemoteRouteButton: MediaRouteButton
-    private lateinit var castRemoteRoot: LinearLayout
-    private lateinit var castRemoteDevice: TextView
-    private lateinit var castRemoteName: TextView
-    private lateinit var castRemoteProgram: TextView
-    private lateinit var castRemoteNextProgram: TextView
-    private lateinit var castRemotePrevious: TextView
-    private lateinit var castRemotePlayPause: TextView
-    private lateinit var castRemoteNext: TextView
-    private lateinit var castRemoteSleep: TextView
-    private lateinit var castRemoteStop: TextView
-    private lateinit var castRemoteContentTitle: TextView
-    private lateinit var castRemoteContentStatus: TextView
-    private lateinit var castRemoteContentList: ListView
-    private lateinit var castTabRemote: TextView
-    private lateinit var castTabChannels: TextView
-    private lateinit var castTabGuide: TextView
-    private lateinit var castTabSport: TextView
-    private lateinit var castRemoteAdapter: CastRemoteAdapter
-
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val sleepHandler = Handler(Looper.getMainLooper())
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    private val castEventFormat = SimpleDateFormat("EEE d. MMM · HH:mm", Locale.getDefault())
 
     private val sleepRunnable = Runnable {
         NightModePreferences.clearSleepTimer(this)
-        if (isCasting) {
-            player?.stop()
-            endCastSession()
-            android.widget.Toast.makeText(
-                this,
-                "Sleep timer ferdig. Chromecast-avspillingen er stoppet.",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        } else {
-            player?.pause()
-            android.widget.Toast.makeText(
-                this,
-                "Sleep timer ferdig. Avspillingen er stoppet.",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
+        player?.pause()
+        android.widget.Toast.makeText(
+            this,
+            "Sleep timer ferdig. Avspillingen er stoppet.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
         finish()
     }
 
@@ -139,69 +102,23 @@ class FullscreenPlayerActivity : FragmentActivity() {
             val remaining = endAt - System.currentTimeMillis()
             if (endAt <= 0L || remaining <= 0L) return
 
-            if (!isCasting) {
-                val baseVolume = if (NightModePreferences.isEnabled(this@FullscreenPlayerActivity)) {
-                    NightModePreferences.playerVolume(this@FullscreenPlayerActivity)
-                } else {
-                    1f
-                }
-                val factor = (remaining.coerceAtMost(60_000L) / 60_000f).coerceIn(0.08f, 1f)
-                player?.volume = baseVolume * factor
+            val baseVolume = if (NightModePreferences.isEnabled(this@FullscreenPlayerActivity)) {
+                NightModePreferences.playerVolume(this@FullscreenPlayerActivity)
+            } else {
+                1f
             }
+            val factor = (remaining.coerceAtMost(60_000L) / 60_000f).coerceIn(0.08f, 1f)
+            player?.volume = baseVolume * factor
             sleepHandler.postDelayed(this, 1_000L)
         }
     }
 
-    private var player: Player? = null
-    private var localPlayer: ExoPlayer? = null
-    private var castPlayer: CastPlayer? = null
-    private var castSupported: Boolean = false
-    private var isCasting: Boolean = false
-    private var castTab: CastTab = CastTab.REMOTE
+    private var player: ExoPlayer? = null
     private var channels: List<Channel> = emptyList()
     private var epgData: EpgData = EpgData.EMPTY
     private var channelIndex: Int = 0
     private var lastChannelSwitchAt: Long = 0L
     private var lastAutoFrameRate: Float = -1f
-
-    private val playerListener = object : Player.Listener {
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_READY) {
-                if (!isCasting) {
-                    localPlayer?.let(::applyDetectedFrameRate)
-                }
-                refreshHint()
-                refreshCastRemotePanel()
-                scheduleOverlayHide()
-            }
-        }
-
-        override fun onTracksChanged(tracks: Tracks) {
-            if (!isCasting) {
-                playerView.postDelayed({
-                    localPlayer?.let(::applyDetectedFrameRate)
-                }, 150L)
-            }
-        }
-
-        override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
-            updateCastMode(deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE)
-        }
-
-        override fun onIsPlayingChanged(isPlaying: Boolean) {
-            refreshCastRemoteControls()
-        }
-
-        override fun onPlayerError(error: PlaybackException) {
-            hintView.text = "Avspillingsfeil: ${error.errorCodeName}"
-            if (isCasting) {
-                castRemoteContentStatus.text =
-                    "Cast-feil: ${error.errorCodeName}. Streamen kan være inkompatibel med Chromecast."
-            } else {
-                showOverlay()
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -236,26 +153,6 @@ class FullscreenPlayerActivity : FragmentActivity() {
         channelPanelTitle = findViewById(R.id.fullscreenChannelPanelTitle)
         channelListView = findViewById(R.id.fullscreenChannelList)
 
-        castButton = findViewById(R.id.fullscreenCastButton)
-        castRemoteRouteButton = findViewById(R.id.castRemoteRouteButton)
-        castRemoteRoot = findViewById(R.id.castRemoteRoot)
-        castRemoteDevice = findViewById(R.id.castRemoteDevice)
-        castRemoteName = findViewById(R.id.castRemoteName)
-        castRemoteProgram = findViewById(R.id.castRemoteProgram)
-        castRemoteNextProgram = findViewById(R.id.castRemoteNextProgram)
-        castRemotePrevious = findViewById(R.id.castRemotePrevious)
-        castRemotePlayPause = findViewById(R.id.castRemotePlayPause)
-        castRemoteNext = findViewById(R.id.castRemoteNext)
-        castRemoteSleep = findViewById(R.id.castRemoteSleep)
-        castRemoteStop = findViewById(R.id.castRemoteStop)
-        castRemoteContentTitle = findViewById(R.id.castRemoteContentTitle)
-        castRemoteContentStatus = findViewById(R.id.castRemoteContentStatus)
-        castRemoteContentList = findViewById(R.id.castRemoteContentList)
-        castTabRemote = findViewById(R.id.castTabRemote)
-        castTabChannels = findViewById(R.id.castTabChannels)
-        castTabGuide = findViewById(R.id.castTabGuide)
-        castTabSport = findViewById(R.id.castTabSport)
-
         channels = preparedChannels
         epgData = preparedEpgData
         channelIndex = preparedIndex.coerceIn(0, channels.lastIndex.coerceAtLeast(0))
@@ -276,24 +173,6 @@ class FullscreenPlayerActivity : FragmentActivity() {
             selectChannelFromPanel(position)
         }
 
-        castRemoteAdapter = CastRemoteAdapter()
-        castRemoteContentList.adapter = castRemoteAdapter
-        castRemoteContentList.setOnItemClickListener { _, _, position, _ ->
-            val row = castRemoteAdapter.getItem(position)
-            val target = row.channelIndex
-            if (target != null && target in channels.indices) {
-                channelIndex = target
-                playCurrentChannel()
-            } else if (castTab == CastTab.SPORT) {
-                android.widget.Toast.makeText(
-                    this,
-                    "Ingen sikker kanal-match for denne sportshendelsen ennå.",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        configureCasting()
         configureTouchControls()
         configureNightMode()
         applyNightMode()
@@ -306,52 +185,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
         super.onStart()
         restoreSleepTimer()
         applyNightMode()
-        if (!isCasting) player?.play()
-    }
-
-    private fun configureCasting() {
-        castSupported = !DeviceProfile.isTelevision(this)
-        if (!castSupported) {
-            castButton.visibility = View.GONE
-            castRemoteRouteButton.visibility = View.GONE
-            return
-        }
-
-        try {
-            MediaRouteButtonFactory.setUpMediaRouteButton(this, castButton)
-            MediaRouteButtonFactory.setUpMediaRouteButton(this, castRemoteRouteButton)
-            castButton.visibility = View.VISIBLE
-        } catch (error: Throwable) {
-            android.util.Log.w(
-                "Cloud247Cast",
-                "Cast route button unavailable; local playback remains enabled.",
-                error
-            )
-            castSupported = false
-            castButton.visibility = View.GONE
-            castRemoteRouteButton.visibility = View.GONE
-        }
-
-        castRemotePrevious.setOnClickListener { switchChannel(-1) }
-        castRemoteNext.setOnClickListener { switchChannel(1) }
-        castRemotePlayPause.setOnClickListener {
-            if (player?.isPlaying == true) player?.pause() else player?.play()
-            refreshCastRemoteControls()
-        }
-        castRemoteSleep.setOnClickListener {
-            cycleSleepTimer()
-            refreshNightPanel()
-            refreshCastRemotePanel()
-        }
-        castRemoteStop.setOnClickListener {
-            player?.stop()
-            endCastSession()
-        }
-
-        castTabRemote.setOnClickListener { setCastTab(CastTab.REMOTE) }
-        castTabChannels.setOnClickListener { setCastTab(CastTab.CHANNELS) }
-        castTabGuide.setOnClickListener { setCastTab(CastTab.GUIDE) }
-        castTabSport.setOnClickListener { setCastTab(CastTab.SPORT) }
+        player?.play()
     }
 
     private fun configureTouchControls() {
@@ -450,10 +284,10 @@ class FullscreenPlayerActivity : FragmentActivity() {
         nightFilterView.visibility = if (enabled) View.VISIBLE else View.GONE
         if (enabled) {
             nightFilterView.alpha = NightModePreferences.filterAlpha(this)
-            if (!isCasting) player?.volume = NightModePreferences.playerVolume(this)
+            player?.volume = NightModePreferences.playerVolume(this)
         } else {
             nightFilterView.alpha = 0f
-            if (!isCasting) player?.volume = 1f
+            player?.volume = 1f
         }
         NightModePreferences.applyWindowBrightness(this)
         nightTouch.text = if (enabled) "Natt ✓" else "Natt"
@@ -497,9 +331,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
             "Sleep timer: Av"
         }
 
-        nightStatus.text = if (isCasting) {
-            "Nattfilter og lysstyrke gjelder nettbrettet. Cast-volumet endres ikke. Sleep timer stopper Chromecast."
-        } else if (enabled) {
+        nightStatus.text = if (enabled) {
             "Nattfilter, lavere lysstyrke og redusert app-lyd er aktivt."
         } else {
             "Slå på for roligere bilde og lyd uten å endre systemvolumet."
@@ -560,72 +392,52 @@ class FullscreenPlayerActivity : FragmentActivity() {
 
     private fun playChannel(channel: Channel) {
         clearAutoFrameRate()
+        playerView.player = null
+        player?.release()
+        player = null
 
         nameView.text = channel.name.ifBlank { "Cloud247 TV" }
         updateProgramInfo(channel)
-        hintView.text = if (isCasting) "Sender kanal til Chromecast …" else "Laster kanal …"
-        if (!isCasting) showOverlay()
+        hintView.text = "Laster kanal …"
+        showOverlay()
 
         try {
-            if (player == null) {
-                val session = PlayerFactory.create(this, channel.url)
-                localPlayer = session.player
-
-                var activePlayer: Player = session.player
-
-                if (castSupported) {
-                    try {
-                        val candidate = CastPlayer.Builder(this)
-                            .setLocalPlayer(session.player)
-                            .build()
-                        castPlayer = candidate
-                        activePlayer = candidate
-                    } catch (castError: Throwable) {
-                        android.util.Log.w(
-                            "Cloud247Cast",
-                            "CastPlayer unavailable; continuing with local ExoPlayer.",
-                            castError
-                        )
-                        castSupported = false
-                        castPlayer = null
-                        castButton.visibility = View.GONE
-                        castRemoteRouteButton.visibility = View.GONE
+            val session = PlayerFactory.create(this, channel.url)
+            player = session.player
+            playerView.player = session.player
+            session.player.volume = if (NightModePreferences.isEnabled(this)) {
+                NightModePreferences.playerVolume(this)
+            } else {
+                1f
+            }
+            session.player.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) {
+                        applyDetectedFrameRate(session.player)
+                        refreshHint()
+                        scheduleOverlayHide()
                     }
                 }
 
-                player = activePlayer
-                player?.addListener(playerListener)
-                playerView.player = player
-                player?.setMediaItem(session.mediaItem)
-            } else {
-                player?.setMediaItem(PlayerFactory.mediaItemFor(channel.url))
-            }
-
-            if (!isCasting) {
-                player?.volume = if (NightModePreferences.isEnabled(this)) {
-                    NightModePreferences.playerVolume(this)
-                } else {
-                    1f
+                override fun onTracksChanged(tracks: Tracks) {
+                    playerView.postDelayed({
+                        if (player === session.player) applyDetectedFrameRate(session.player)
+                    }, 150L)
                 }
-            }
 
-            player?.prepare()
-            player?.playWhenReady = true
-
-            val remote =
-                player?.deviceInfo?.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
-            updateCastMode(remote)
-            refreshCastRemotePanel()
-
-            if (!remote) playerView.requestFocus()
+                override fun onPlayerError(error: PlaybackException) {
+                    hintView.text = "Avspillingsfeil: ${error.errorCodeName}"
+                    showOverlay()
+                }
+            })
+            session.player.setMediaItem(session.mediaItem)
+            session.player.prepare()
+            session.player.playWhenReady = true
+            playerView.requestFocus()
         } catch (error: Exception) {
-            val message = error.message?.take(120) ?: "ukjent feil"
-            hintView.text = "Kunne ikke starte avspillingen: $message"
-            if (isCasting) {
-                castRemoteContentStatus.text = "Kunne ikke caste kanalen: $message"
-            } else {
-                showOverlay()
-            }
+            hintView.text =
+                "Kunne ikke starte avspillingen: ${error.message?.take(100) ?: "ukjent feil"}"
+            showOverlay()
         }
     }
 
@@ -698,223 +510,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
         playCurrentChannel()
     }
 
-    private fun updateCastMode(remote: Boolean) {
-        if (!castSupported && remote) return
-        val changed = isCasting != remote
-        isCasting = remote
-
-        if (remote) {
-            clearAutoFrameRate()
-            overlayHandler.removeCallbacksAndMessages(null)
-            overlay.visibility = View.GONE
-            touchControls.visibility = View.GONE
-            channelPanel.visibility = View.GONE
-            nightPanel.visibility = View.GONE
-            playerView.visibility = View.GONE
-            castRemoteRoot.visibility = View.VISIBLE
-            refreshCastRemotePanel()
-        } else {
-            castRemoteRoot.visibility = View.GONE
-            playerView.visibility = View.VISIBLE
-            playerView.player = player
-            applyNightMode()
-            if (changed) showOverlay()
-        }
-    }
-
-    private fun currentCastDeviceName(): String {
-        return try {
-            CastContext.getSharedInstance(this)
-                .sessionManager
-                .currentCastSession
-                ?.castDevice
-                ?.friendlyName
-                ?.takeIf { it.isNotBlank() }
-                ?: "Chromecast"
-        } catch (_: Exception) {
-            "Chromecast"
-        }
-    }
-
-    private fun endCastSession() {
-        try {
-            CastContext.getSharedInstance(this)
-                .sessionManager
-                .endCurrentSession(true)
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun setCastTab(tab: CastTab) {
-        castTab = tab
-        refreshCastRemotePanel()
-    }
-
-    private fun refreshCastRemoteControls() {
-        if (!::castRemotePlayPause.isInitialized) return
-        castRemotePlayPause.text = if (player?.isPlaying == true) "Pause" else "Spill"
-    }
-
-    private fun refreshCastRemotePanel() {
-        if (!::castRemoteRoot.isInitialized || !isCasting) return
-
-        val channel = channels.getOrNull(channelIndex)
-        castRemoteDevice.text = "📺 Spiller på ${currentCastDeviceName()}"
-        castRemoteName.text = channel?.name?.ifBlank { "Cloud247 TV" } ?: "Cloud247 TV"
-
-        val window = channel?.let { EpgLookup.window(it, epgData) }
-        castRemoteProgram.text = window?.now?.let {
-            "Nå ${timeFormat.format(it.start)} · ${it.title}"
-        } ?: "Direktesending"
-        castRemoteNextProgram.text = window?.next?.let {
-            "Neste ${timeFormat.format(it.start)} · ${it.title}"
-        } ?: ""
-
-        val endAt = NightModePreferences.sleepEndAt(this)
-        val remaining = endAt - System.currentTimeMillis()
-        castRemoteSleep.text = if (remaining > 0L) {
-            "Sleep · ${((remaining + 59_999L) / 60_000L)} min"
-        } else {
-            "Sleep · Av"
-        }
-        refreshCastRemoteControls()
-
-        castTabRemote.setTextColor(
-            getColor(if (castTab == CastTab.REMOTE) R.color.yellow else R.color.white)
-        )
-        castTabChannels.setTextColor(
-            getColor(if (castTab == CastTab.CHANNELS) R.color.yellow else R.color.white)
-        )
-        castTabGuide.setTextColor(
-            getColor(if (castTab == CastTab.GUIDE) R.color.yellow else R.color.white)
-        )
-        castTabSport.setTextColor(
-            getColor(if (castTab == CastTab.SPORT) R.color.yellow else R.color.white)
-        )
-
-        val rows = when (castTab) {
-            CastTab.REMOTE -> buildRemoteRows(channel)
-            CastTab.CHANNELS -> buildChannelRows()
-            CastTab.GUIDE -> buildGuideRows()
-            CastTab.SPORT -> buildSportsRows()
-        }
-
-        castRemoteContentTitle.text = when (castTab) {
-            CastTab.REMOTE -> "REMOTE"
-            CastTab.CHANNELS -> "KANALER · ${channels.size}"
-            CastTab.GUIDE -> "TV-GUIDE"
-            CastTab.SPORT -> "SPORT · KOMMENDE FOR DEG"
-        }
-        castRemoteContentStatus.text = when (castTab) {
-            CastTab.REMOTE -> "Nettbrettet fungerer nå som kontrollpanel."
-            CastTab.CHANNELS -> "Trykk på en kanal for å sende den direkte til TV-en."
-            CastTab.GUIDE -> "Nå og neste. Trykk på en kanal for å bytte på TV-en."
-            CastTab.SPORT -> "Trykk på en sportshendelse med kanal-match for å sende den til TV-en."
-        }
-
-        castRemoteAdapter.setRows(rows)
-    }
-
-    private fun buildRemoteRows(channel: Channel?): List<CastPanelRow> {
-        if (channel == null) return emptyList()
-        val window = EpgLookup.window(channel, epgData)
-        val endAt = NightModePreferences.sleepEndAt(this)
-        val remaining = endAt - System.currentTimeMillis()
-        val sleepText = if (remaining > 0L) {
-            "${((remaining + 59_999L) / 60_000L)} min igjen"
-        } else {
-            "Av"
-        }
-
-        return listOf(
-            CastPanelRow(
-                title = "Nå · ${channel.name}",
-                subtitle = window.now?.title ?: "Direktesending"
-            ),
-            CastPanelRow(
-                title = "Neste",
-                subtitle = window.next?.let {
-                    "${timeFormat.format(it.start)} · ${it.title}"
-                } ?: "Ingen EPG-data"
-            ),
-            CastPanelRow(
-                title = "Cast-enhet",
-                subtitle = currentCastDeviceName()
-            ),
-            CastPanelRow(
-                title = "Sleep timer",
-                subtitle = "$sleepText · stopper Chromecast når tiden går ut"
-            )
-        )
-    }
-
-    private fun buildChannelRows(): List<CastPanelRow> =
-        channels.mapIndexed { index, channel ->
-            val now = EpgLookup.window(channel, epgData).now
-            CastPanelRow(
-                title = if (index == channelIndex) "▶ ${channel.name}" else channel.name,
-                subtitle = now?.title ?: channel.group,
-                channelIndex = index
-            )
-        }
-
-    private fun buildGuideRows(): List<CastPanelRow> =
-        channels.mapIndexed { index, channel ->
-            val window = EpgLookup.window(channel, epgData)
-            val subtitle = buildString {
-                if (window.now != null) append("Nå · ${window.now.title}")
-                else append("Ingen programinfo")
-                if (window.next != null) {
-                    append(
-                        "   |   Neste ${timeFormat.format(window.next.start)} · ${window.next.title}"
-                    )
-                }
-            }
-            CastPanelRow(
-                title = channel.name,
-                subtitle = subtitle,
-                channelIndex = index
-            )
-        }
-
-    private fun buildSportsRows(): List<CastPanelRow> {
-        val events = SportsHubCache.load(this).events.take(30)
-        if (events.isEmpty()) {
-            return listOf(
-                CastPanelRow(
-                    title = "Ingen kommende sport lagret",
-                    subtitle = "Åpne Sport fra hovedskjermen for å velge favoritter og hente sportsdata."
-                )
-            )
-        }
-
-        return events.map { event ->
-            val match = SportsChannelMatcher.find(event, channels, epgData)
-            val targetIndex = match?.channel?.let { matched ->
-                channels.indexOfFirst {
-                    it.url == matched.url && it.name == matched.name
-                }.takeIf { it >= 0 }
-            }
-            val icon = when (event.sport) {
-                "tennis" -> "🎾"
-                "golf" -> "⛳"
-                else -> "⚽"
-            }
-            val channelText = match?.channel?.name ?: "Kanal ikke matchet ennå"
-            CastPanelRow(
-                title = "$icon ${event.title}",
-                subtitle =
-                    "${castEventFormat.format(event.start)} · ${event.competition} · $channelText",
-                channelIndex = targetIndex
-            )
-        }
-    }
-
     private fun showOverlay() {
-        if (isCasting) {
-            refreshCastRemotePanel()
-            return
-        }
         overlay.animate().cancel()
         touchControls.animate().cancel()
 
@@ -929,7 +525,6 @@ class FullscreenPlayerActivity : FragmentActivity() {
     }
 
     private fun hideOverlay() {
-        if (isCasting) return
         if (channelPanel.visibility == View.VISIBLE || nightPanel.visibility == View.VISIBLE) return
 
         overlay.animate().cancel()
@@ -1140,7 +735,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!isCasting) player?.pause()
+        player?.pause()
     }
 
     override fun onDestroy() {
@@ -1148,56 +743,9 @@ class FullscreenPlayerActivity : FragmentActivity() {
         sleepHandler.removeCallbacksAndMessages(null)
         clearAutoFrameRate()
         playerView.player = null
-        player?.removeListener(playerListener)
         player?.release()
         player = null
-        castPlayer = null
-        localPlayer = null
         super.onDestroy()
-    }
-
-    private enum class CastTab {
-        REMOTE,
-        CHANNELS,
-        GUIDE,
-        SPORT
-    }
-
-    private data class CastPanelRow(
-        val title: String,
-        val subtitle: String,
-        val channelIndex: Int? = null
-    )
-
-    private inner class CastRemoteAdapter : BaseAdapter() {
-        private val rows = mutableListOf<CastPanelRow>()
-
-        fun setRows(items: List<CastPanelRow>) {
-            rows.clear()
-            rows.addAll(items)
-            notifyDataSetChanged()
-        }
-
-        override fun getCount(): Int = rows.size
-        override fun getItem(position: Int): CastPanelRow = rows[position]
-        override fun getItemId(position: Int): Long = position.toLong()
-
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val view = convertView ?: LayoutInflater.from(this@FullscreenPlayerActivity)
-                .inflate(R.layout.item_fullscreen_channel, parent, false)
-            val row = getItem(position)
-            val title = view.findViewById<TextView>(R.id.fullscreenChannelName)
-            val subtitle = view.findViewById<TextView>(R.id.fullscreenChannelProgram)
-
-            title.text = row.title
-            title.setTextColor(
-                getColor(
-                    if (row.channelIndex == channelIndex) R.color.yellow else R.color.white
-                )
-            )
-            subtitle.text = row.subtitle
-            return view
-        }
     }
 
     private inner class MiniChannelAdapter : BaseAdapter() {
