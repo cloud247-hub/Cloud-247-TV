@@ -96,6 +96,23 @@ class FullscreenPlayerActivity : Activity() {
         finish()
     }
 
+    private val sleepFadeRunnable = object : Runnable {
+        override fun run() {
+            val endAt = NightModePreferences.sleepEndAt(this@FullscreenPlayerActivity)
+            val remaining = endAt - System.currentTimeMillis()
+            if (endAt <= 0L || remaining <= 0L) return
+
+            val baseVolume = if (NightModePreferences.isEnabled(this@FullscreenPlayerActivity)) {
+                NightModePreferences.playerVolume(this@FullscreenPlayerActivity)
+            } else {
+                1f
+            }
+            val factor = (remaining.coerceAtMost(60_000L) / 60_000f).coerceIn(0.08f, 1f)
+            player?.volume = baseVolume * factor
+            sleepHandler.postDelayed(this, 1_000L)
+        }
+    }
+
     private var player: ExoPlayer? = null
     private var channels: List<Channel> = emptyList()
     private var epgData: EpgData = EpgData.EMPTY
@@ -343,6 +360,7 @@ class FullscreenPlayerActivity : Activity() {
             NightModePreferences.setSleepMinutes(this, next)
         }
         restoreSleepTimer()
+        applyNightMode()
     }
 
     private fun restoreSleepTimer() {
@@ -357,6 +375,8 @@ class FullscreenPlayerActivity : Activity() {
         }
 
         sleepHandler.postDelayed(sleepRunnable, delay)
+        val fadeDelay = (delay - 60_000L).coerceAtLeast(0L)
+        sleepHandler.postDelayed(sleepFadeRunnable, fadeDelay)
     }
 
     private fun playCurrentChannel() {

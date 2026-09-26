@@ -19,7 +19,7 @@
         android:id="@+id/fullscreenNightFilter"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#33201008"
+        android:background="#FF201008"
         android:clickable="false"
         android:focusable="false"
         android:visibility="gone" />
