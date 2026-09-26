@@ -211,7 +211,7 @@ class MainActivity : Activity() {
                     }
                     true
                 }
-                KeyEvent.ACTION_UP, KeyEvent.ACTION_CANCEL -> {
+                KeyEvent.ACTION_UP -> {
                     favoriteKeyHeld = false
                     favoriteHoldHandler.removeCallbacksAndMessages(null)
                     if (!favoriteHoldTriggered) {
