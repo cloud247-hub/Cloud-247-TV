@@ -892,6 +892,10 @@ class FullscreenPlayerActivity : FragmentActivity() {
     }
 
     private fun showOverlay() {
+        if (isCasting) {
+            refreshCastRemotePanel()
+            return
+        }
         overlay.animate().cancel()
         touchControls.animate().cancel()
 
@@ -906,6 +910,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
     }
 
     private fun hideOverlay() {
+        if (isCasting) return
         if (channelPanel.visibility == View.VISIBLE || nightPanel.visibility == View.VISIBLE) return
 
         overlay.animate().cancel()
@@ -1116,7 +1121,7 @@ class FullscreenPlayerActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        player?.pause()
+        if (!isCasting) player?.pause()
     }
 
     override fun onDestroy() {
@@ -1124,9 +1129,56 @@ class FullscreenPlayerActivity : FragmentActivity() {
         sleepHandler.removeCallbacksAndMessages(null)
         clearAutoFrameRate()
         playerView.player = null
+        player?.removeListener(playerListener)
         player?.release()
         player = null
+        castPlayer = null
+        localPlayer = null
         super.onDestroy()
+    }
+
+    private enum class CastTab {
+        REMOTE,
+        CHANNELS,
+        GUIDE,
+        SPORT
+    }
+
+    private data class CastPanelRow(
+        val title: String,
+        val subtitle: String,
+        val channelIndex: Int? = null
+    )
+
+    private inner class CastRemoteAdapter : BaseAdapter() {
+        private val rows = mutableListOf<CastPanelRow>()
+
+        fun setRows(items: List<CastPanelRow>) {
+            rows.clear()
+            rows.addAll(items)
+            notifyDataSetChanged()
+        }
+
+        override fun getCount(): Int = rows.size
+        override fun getItem(position: Int): CastPanelRow = rows[position]
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val view = convertView ?: LayoutInflater.from(this@FullscreenPlayerActivity)
+                .inflate(R.layout.item_fullscreen_channel, parent, false)
+            val row = getItem(position)
+            val title = view.findViewById<TextView>(R.id.fullscreenChannelName)
+            val subtitle = view.findViewById<TextView>(R.id.fullscreenChannelProgram)
+
+            title.text = row.title
+            title.setTextColor(
+                getColor(
+                    if (row.channelIndex == channelIndex) R.color.yellow else R.color.white
+                )
+            )
+            subtitle.text = row.subtitle
+            return view
+        }
     }
 
     private inner class MiniChannelAdapter : BaseAdapter() {
