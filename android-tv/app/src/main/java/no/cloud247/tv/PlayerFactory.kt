@@ -16,7 +16,7 @@ import java.net.URL
 
 @OptIn(markerClass = [UnstableApi::class])
 object PlayerFactory {
-    private const val USER_AGENT = "Cloud247-TV/1.0.0 (Android TV)"
+    private const val USER_AGENT = "Cloud247-TV/1.7.0 (Android)"
 
     data class Session(val player: ExoPlayer, val mediaItem: MediaItem)
 
@@ -40,6 +40,12 @@ object PlayerFactory {
         if (looksLikeHls(originalUrl)) builder.setMimeType(MimeTypes.APPLICATION_M3U8)
 
         return Session(player, builder.build())
+    }
+
+    fun mediaItemFor(originalUrl: String): MediaItem {
+        val builder = MediaItem.Builder().setUri(Uri.parse(originalUrl))
+        if (looksLikeHls(originalUrl)) builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+        return builder.build()
     }
 
     private fun looksLikeHls(url: String): Boolean {

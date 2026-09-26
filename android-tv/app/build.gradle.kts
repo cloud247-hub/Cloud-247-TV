@@ -8,10 +8,10 @@ android {
 
     defaultConfig {
         applicationId = "no.cloud247.tv"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
-        versionCode = 10600
-        versionName = "1.6.0"
+        versionCode = 10700
+        versionName = "1.7.0"
     }
 
     buildTypes {
@@ -36,6 +36,9 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$media3")
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-ui:$media3")
+    implementation("androidx.media3:media3-session:$media3")
+    implementation("androidx.media3:media3-cast:$media3")
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("com.google.zxing:core:3.5.4")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.core:core-ktx:1.17.0")
