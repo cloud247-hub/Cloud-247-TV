@@ -10,17 +10,17 @@
       navAndroid: 'Android TV',
       navSamsung: 'Samsung TV',
       navPair: 'Koble TV',
-      nativeApp: 'ANDROID · v1.6.0 · SAMSUNG TV · v1.0.3',
+      nativeApp: 'ANDROID · v1.7.0 · SAMSUNG TV · v1.0.3',
       eyebrowNew: 'DIN TV · DIN SPILLELISTE',
       heroNew1: 'TV-en din.',
       heroNew2: 'Spillelisten din.',
-      leadNew: 'Cloud247 TV gir deg et ryddig TV-grensesnitt for din egen M3U-liste på Android TV, Android-nettbrett og Samsung TV – med full TV-guide, Night Mode og en egen Sports Hub med fotball, tennis, golf og «Kommende for deg» på Android-nettbrett.',
+      leadNew: 'Cloud247 TV gir deg et ryddig TV-grensesnitt for din egen M3U-liste på Android TV, Android-nettbrett og Samsung TV – med full TV-guide, Sports Hub og Chromecast med eget kontrollpanel på nettbrettet.',
       pairTv: 'Koble TV',
       downloadAndroid: 'Android TV / Tablet',
       downloadSamsung: 'Samsung TV',
       pointDirect: 'Full TV-guide / EPG',
       pointQr: 'Sports Hub · fotball · tennis · golf',
-      pointLocal: 'Night Mode + sleep timer',
+      pointLocal: 'Chromecast + Remote Mode',
       previewSub: 'DIN TV · DIN SPILLELISTE',
       channelsWord: 'kanaler',
       replace: 'Bytt liste',
@@ -40,23 +40,23 @@
       benefit2Title: 'Full TV-guide',
       benefit2Text: 'Se programoversikten som en ekte tidslinje, hopp mellom kanaler og åpne kanalen direkte fra guiden.',
       benefit3Title: 'Like god på TV og nettbrett',
-      benefit3Text: 'Bruk D-pad og fjernkontroll på TV, eller touch, swipe og kanalvelger i fullskjerm på Android-nettbrett.'
+      benefit3Text: 'Cast fra Android-nettbrettet og bruk 40/60 Remote Mode med kanaler, TV-guide, sport og sleep timer mens TV-en spiller.'
     },
     en: {
       navAndroid: 'Android TV',
       navSamsung: 'Samsung TV',
       navPair: 'Pair TV',
-      nativeApp: 'ANDROID · v1.6.0 · SAMSUNG TV · v1.0.3',
+      nativeApp: 'ANDROID · v1.7.0 · SAMSUNG TV · v1.0.3',
       eyebrowNew: 'YOUR TV · YOUR PLAYLIST',
       heroNew1: 'Your TV.',
       heroNew2: 'Your playlist.',
-      leadNew: 'Cloud247 TV gives you a clean TV interface for your own M3U playlist on Android TV, Android tablets and Samsung TV, with a full TV guide, Night Mode and a dedicated Sports Hub for football, tennis, golf and personalized upcoming events.',
+      leadNew: 'Cloud247 TV gives you a clean TV interface for your own M3U playlist on Android TV, Android tablets and Samsung TV, with a full TV guide, Sports Hub and Chromecast with a dedicated tablet control panel.',
       pairTv: 'Pair TV',
       downloadAndroid: 'Android TV / Tablet',
       downloadSamsung: 'Samsung TV',
       pointDirect: 'Full TV guide / EPG',
       pointQr: 'Sports Hub · football · tennis · golf',
-      pointLocal: 'Night Mode + sleep timer',
+      pointLocal: 'Chromecast + Remote Mode',
       previewSub: 'YOUR TV · YOUR PLAYLIST',
       channelsWord: 'channels',
       replace: 'Replace list',
@@ -76,7 +76,7 @@
       benefit2Title: 'Full TV guide',
       benefit2Text: 'Browse programmes on a real timeline, move between channels and open a channel directly from the guide.',
       benefit3Title: 'Great on TV and tablet',
-      benefit3Text: 'Use D-pad and remote control on TV, or touch, swipe and the fullscreen channel selector on Android tablets.'
+      benefit3Text: 'Cast from an Android tablet and use the 40/60 Remote Mode for channels, TV guide, sports and sleep timer while the TV keeps playing.'
     }
   };
 
