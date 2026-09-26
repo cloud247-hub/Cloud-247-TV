@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/navy"
+    android:padding="20dp">
+
+    <ScrollView
+        android:layout_width="410dp"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="@drawable/panel_bg">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="SPORT" android:textColor="@color/yellow" android:textSize="14sp"
+                android:textStyle="bold" android:letterSpacing="0.10" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" android:text="Dine favoritter"
+                android:textColor="@color/white" android:textSize="27sp" android:textStyle="bold" />
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:text="⚽ Fotball"
+                android:textColor="@color/yellow" android:textStyle="bold" />
+            <EditText android:id="@+id/sportsHubTeams" android:layout_width="match_parent"
+                android:layout_height="50dp" android:layout_marginTop="6dp"
+                android:background="@drawable/input_bg" android:hint="Lag: Liverpool, Bodø/Glimt …"
+                android:singleLine="true" android:textColor="@color/white" android:textColorHint="@color/muted" />
+            <EditText android:id="@+id/sportsHubLeagues" android:layout_width="match_parent"
+                android:layout_height="50dp" android:layout_marginTop="6dp"
+                android:background="@drawable/input_bg" android:hint="Ligaer: Champions League …"
+                android:singleLine="true" android:textColor="@color/white" android:textColorHint="@color/muted" />
+            <CheckBox android:id="@+id/sportsHubPremierLeague" android:layout_width="match_parent"
+                android:layout_height="44dp" android:text="Premier League"
+                android:textColor="@color/white" android:buttonTint="@color/yellow" />
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:text="🎾 Tennis"
+                android:textColor="@color/yellow" android:textStyle="bold" />
+            <EditText android:id="@+id/sportsHubTennisPlayers" android:layout_width="match_parent"
+                android:layout_height="50dp" android:layout_marginTop="6dp"
+                android:background="@drawable/input_bg" android:hint="Casper Ruud, Alcaraz …"
+                android:singleLine="true" android:textColor="@color/white" android:textColorHint="@color/muted" />
+            <CheckBox android:id="@+id/sportsHubTennisMajors" android:layout_width="match_parent"
+                android:layout_height="44dp" android:text="Tennis Majors"
+                android:textColor="@color/white" android:buttonTint="@color/yellow" />
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:text="⛳ Golf"
+                android:textColor="@color/yellow" android:textStyle="bold" />
+            <EditText android:id="@+id/sportsHubGolfPlayers" android:layout_width="match_parent"
+                android:layout_height="50dp" android:layout_marginTop="6dp"
+                android:background="@drawable/input_bg" android:hint="Viktor Hovland, Rory McIlroy …"
+                android:singleLine="true" android:textColor="@color/white" android:textColorHint="@color/muted" />
+            <CheckBox android:id="@+id/sportsHubGolfMajors" android:layout_width="match_parent"
+                android:layout_height="42dp" android:text="Golf Majors"
+                android:textColor="@color/white" android:buttonTint="@color/yellow" />
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <CheckBox android:id="@+id/sportsHubPga" android:layout_width="0dp"
+                    android:layout_height="40dp" android:layout_weight="1" android:text="PGA"
+                    android:textColor="@color/white" android:buttonTint="@color/yellow" />
+                <CheckBox android:id="@+id/sportsHubDpWorld" android:layout_width="0dp"
+                    android:layout_height="40dp" android:layout_weight="1" android:text="DP World"
+                    android:textColor="@color/white" android:buttonTint="@color/yellow" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <CheckBox android:id="@+id/sportsHubLpga" android:layout_width="0dp"
+                    android:layout_height="40dp" android:layout_weight="1" android:text="LPGA"
+                    android:textColor="@color/white" android:buttonTint="@color/yellow" />
+                <CheckBox android:id="@+id/sportsHubLiv" android:layout_width="0dp"
+                    android:layout_height="40dp" android:layout_weight="1" android:text="LIV"
+                    android:textColor="@color/white" android:buttonTint="@color/yellow" />
+            </LinearLayout>
+
+            <Button android:id="@+id/sportsHubSave" android:layout_width="match_parent"
+                android:layout_height="48dp" android:layout_marginTop="10dp"
+                android:background="@drawable/focus_button" android:text="Lagre favoritter"
+                android:textColor="@color/button_text" android:textStyle="bold" />
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="18dp" android:text="VARSLER"
+                android:textColor="@color/yellow" android:textSize="13sp" android:textStyle="bold" />
+            <CheckBox android:id="@+id/sportsHubAlertsEnabled" android:layout_width="match_parent"
+                android:layout_height="44dp" android:text="Aktiver sportsvarsler"
+                android:textColor="@color/white" android:buttonTint="@color/yellow" />
+            <Button android:id="@+id/sportsHubLeadTime" android:layout_width="match_parent"
+                android:layout_height="46dp" android:background="@drawable/focus_button"
+                android:text="Varsle ca. 30 min før" android:textColor="@color/button_text" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:text="Velg hva som skal varsle:"
+                android:textColor="@color/muted" android:textSize="13sp" />
+            <LinearLayout android:id="@+id/sportsHubAlertOptions" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
+        android:layout_weight="1" android:layout_marginLeft="16dp"
+        android:orientation="vertical" android:background="@drawable/panel_bg" android:padding="18dp">
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="KOMMENDE FOR DEG" android:textColor="@color/yellow"
+                    android:textSize="14sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                <TextView android:id="@+id/sportsHubSources" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="5dp"
+                    android:text="⚽ –   🎾 –   ⛳ –" android:textColor="@color/muted" android:textSize="12sp" />
+            </LinearLayout>
+            <Button android:id="@+id/sportsHubRefresh" android:layout_width="120dp"
+                android:layout_height="46dp" android:background="@drawable/focus_button"
+                android:text="Oppdater" android:textColor="@color/button_text" />
+            <Button android:id="@+id/sportsHubBack" android:layout_width="110dp"
+                android:layout_height="46dp" android:layout_marginLeft="8dp"
+                android:background="@drawable/focus_button" android:text="Tilbake"
+                android:textColor="@color/button_text" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/sportsHubStatus" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp" android:text="Henter sport …"
+            android:textColor="@color/muted" android:textSize="13sp" />
+        <ListView android:id="@+id/sportsHubList" android:layout_width="match_parent"
+            android:layout_height="0dp" android:layout_weight="1"
+            android:divider="@android:color/transparent" android:dividerHeight="7dp"
+            android:listSelector="@drawable/focus_list_item" />
+    </LinearLayout>
+</LinearLayout>
