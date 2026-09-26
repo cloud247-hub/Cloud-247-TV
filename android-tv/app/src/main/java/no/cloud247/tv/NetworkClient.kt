@@ -10,7 +10,7 @@ import java.net.URL
 import java.util.zip.GZIPInputStream
 
 object NetworkClient {
-    private const val USER_AGENT = "Cloud247-TV/1.2.1 (Android)"
+    private const val USER_AGENT = "Cloud247-TV/1.6.0 (Android)"
     private const val CONNECT_TIMEOUT_MS = 15_000
     private const val READ_TIMEOUT_MS = 60_000
     private const val MAX_REDIRECTS = 5
