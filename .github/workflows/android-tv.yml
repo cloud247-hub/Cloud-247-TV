@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.6.0.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.7.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.6.0
-          path: Cloud247-TV-Android-v1.6.0.apk
+          name: Cloud247-TV-Android-v1.7.0
+          path: Cloud247-TV-Android-v1.7.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,10 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.6.0 adds Xtream Codes (XC) login with server, username and password validation through player_api.php, automatic M3U setup, automatic XMLTV/EPG discovery, and encrypted local persistence of the generated playlist URL."
-          if gh release view android-tv-v1.6.0 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.6.0 Cloud247-TV-Android-v1.6.0.apk --clobber
-            gh release edit android-tv-v1.6.0 --title "Cloud247 TV Android v1.6.0" --notes "$RELEASE_NOTES"
+          RELEASE_NOTES="Android v1.7.0 adds Chromecast via Media3 CastPlayer on Android tablets/phones, automatic 40/60 two-panel Remote Mode, one-tap channel/TV-guide/sports casting, and sleep timer support that stops the Cast session when time expires."
+          if gh release view android-tv-v1.7.0 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.7.0 Cloud247-TV-Android-v1.7.0.apk --clobber
+            gh release edit android-tv-v1.7.0 --title "Cloud247 TV Android v1.7.0" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.6.0 Cloud247-TV-Android-v1.6.0.apk --title "Cloud247 TV Android v1.6.0" --notes "$RELEASE_NOTES"
+            gh release create android-tv-v1.7.0 Cloud247-TV-Android-v1.7.0.apk --title "Cloud247 TV Android v1.7.0" --notes "$RELEASE_NOTES"
           fi
