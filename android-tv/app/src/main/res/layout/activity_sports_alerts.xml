@@ -202,7 +202,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Tips: Smart matching er avhengig av at leverandørens XMLTV inneholder lag-, spiller- eller turneringsnavnet. Bakgrunnssjekken kjøres omtrent hvert 15. minutt."
+            android:text="Tips: Smart matching krever at XMLTV inneholder lag-, spiller- eller turneringsnavnet. En liten lokal sports-cache sjekkes omtrent hvert 15. minutt; selve XMLTV-kilden oppdateres omtrent hver 12. time."
             android:textColor="@color/muted"
             android:textSize="12sp"
             android:lineSpacingExtra="2dp" />

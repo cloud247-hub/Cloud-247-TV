@@ -69,10 +69,10 @@ class SportsAlertsActivity : Activity() {
 
         findViewById<Button>(R.id.sportsCheckNow).setOnClickListener {
             save()
-            SportsAlertScheduler.checkNow(this)
+            SportsAlertScheduler.refreshNow(this)
             Toast.makeText(
                 this,
-                "Sjekker TV-guiden for kommende favoritter.",
+                "Oppdaterer TV-guiden og sjekker kommende favoritter.",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -136,7 +136,7 @@ class SportsAlertsActivity : Activity() {
             epgUrl.isBlank() ->
                 "Ingen XMLTV-URL er lagret. Åpne TV-guide og last EPG fra URL først."
             SportsPreferences.isEnabled(this) ->
-                "Aktiv · smart kanalmatching bruker XMLTV og sjekkes i bakgrunnen."
+                "Aktiv · lokal sports-cache sjekkes ca. hvert 15. minutt. XMLTV oppdateres ca. hver 12. time."
             else ->
                 "Av · favorittene beholdes lokalt på nettbrettet."
         }

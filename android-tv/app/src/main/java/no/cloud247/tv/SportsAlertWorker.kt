@@ -27,7 +27,6 @@ class SportsAlertWorker(
     params: WorkerParameters
 ) : Worker(appContext, params) {
     companion object {
-        private const val MAX_EPG_BYTES = 128 * 1024 * 1024
         private const val CHANNEL_ID = "cloud247_sports_alerts"
         private const val CHANNEL_NAME = "Sportsvarsler"
     }
@@ -36,26 +35,25 @@ class SportsAlertWorker(
         if (!DeviceProfile.isTablet(applicationContext)) return Result.success()
         if (!SportsPreferences.isEnabled(applicationContext)) return Result.success()
 
-        val epgUrl = SportsPreferences.epgUrl(applicationContext)
         val config = SportsPreferences.loadConfig(applicationContext)
-        if (epgUrl.isBlank() || !config.hasFavorites) return Result.success()
+        if (!config.hasFavorites) return Result.success()
 
-        return try {
-            val matches = NetworkClient.withInputStream(epgUrl, MAX_EPG_BYTES) { stream ->
-                SportsEpgScanner.scan(stream, config)
-            }
+        val now = System.currentTimeMillis()
+        val horizon = now + config.leadMinutes * 60_000L
 
-            matches.forEach { match ->
+        SportsEventCache.load(applicationContext)
+            .asSequence()
+            .filter { it.start.time in now..horizon }
+            .take(8)
+            .forEach { match ->
                 val key = match.notificationKey()
                 if (!SportsPreferences.wasNotified(applicationContext, key)) {
                     notifyMatch(match)
                     SportsPreferences.markNotified(applicationContext, key)
                 }
             }
-            Result.success()
-        } catch (_: Exception) {
-            Result.retry()
-        }
+
+        return Result.success()
     }
 
     private fun notifyMatch(match: SportsEpgMatch) {
@@ -65,9 +63,7 @@ class SportsAlertWorker(
                 applicationContext,
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        ) return
 
         val manager = applicationContext.getSystemService(
             Context.NOTIFICATION_SERVICE
@@ -80,7 +76,8 @@ class SportsAlertWorker(
                     CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
-                    description = "Varsler når favorittlag, spillere eller turneringer vises i TV-guiden."
+                    description =
+                        "Varsler når favorittlag, spillere eller turneringer vises i TV-guiden."
                 }
             )
         }
@@ -122,8 +119,42 @@ class SportsAlertWorker(
     }
 }
 
+class SportsEpgRefreshWorker(
+    appContext: Context,
+    params: WorkerParameters
+) : Worker(appContext, params) {
+    companion object {
+        private const val MAX_EPG_BYTES = 128 * 1024 * 1024
+        private const val CACHE_WINDOW_MINUTES = 72 * 60
+    }
+
+    override fun doWork(): Result {
+        if (!DeviceProfile.isTablet(applicationContext)) return Result.success()
+        if (!SportsPreferences.isEnabled(applicationContext)) return Result.success()
+
+        val epgUrl = SportsPreferences.epgUrl(applicationContext)
+        val config = SportsPreferences.loadConfig(applicationContext)
+        if (epgUrl.isBlank() || !config.hasFavorites) return Result.success()
+
+        return try {
+            val matches = NetworkClient.withInputStream(epgUrl, MAX_EPG_BYTES) { stream ->
+                SportsEpgScanner.scan(
+                    input = stream,
+                    config = config,
+                    windowMinutes = CACHE_WINDOW_MINUTES
+                )
+            }
+            SportsEventCache.save(applicationContext, matches)
+            Result.success()
+        } catch (_: Exception) {
+            Result.retry()
+        }
+    }
+}
+
 object SportsAlertScheduler {
-    private const val PERIODIC_WORK = "cloud247_sports_periodic"
+    private const val ALERT_WORK = "cloud247_sports_alerts"
+    private const val REFRESH_WORK = "cloud247_sports_epg_refresh"
 
     fun sync(context: Context) {
         val manager = WorkManager.getInstance(context)
@@ -134,36 +165,64 @@ object SportsAlertScheduler {
                 SportsPreferences.loadConfig(context).hasFavorites
 
         if (!shouldRun) {
-            manager.cancelUniqueWork(PERIODIC_WORK)
+            manager.cancelUniqueWork(ALERT_WORK)
+            manager.cancelUniqueWork(REFRESH_WORK)
             return
         }
 
-        val constraints = Constraints.Builder()
+        val alertWork = PeriodicWorkRequestBuilder<SportsAlertWorker>(
+            15,
+            TimeUnit.MINUTES
+        ).build()
+
+        manager.enqueueUniquePeriodicWork(
+            ALERT_WORK,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            alertWork
+        )
+
+        val network = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val work = PeriodicWorkRequestBuilder<SportsAlertWorker>(
-            15,
-            TimeUnit.MINUTES
+        val refreshWork = PeriodicWorkRequestBuilder<SportsEpgRefreshWorker>(
+            12,
+            TimeUnit.HOURS
         )
-            .setConstraints(constraints)
+            .setConstraints(network)
             .build()
 
         manager.enqueueUniquePeriodicWork(
-            PERIODIC_WORK,
+            REFRESH_WORK,
             ExistingPeriodicWorkPolicy.UPDATE,
-            work
+            refreshWork
         )
+
+        val stale =
+            SportsEventCache.updatedAt(context) <
+                System.currentTimeMillis() - 6L * 60L * 60L * 1000L
+
+        if (stale) refreshNow(context)
     }
 
     fun checkNow(context: Context) {
-        val constraints = Constraints.Builder()
+        val alert = OneTimeWorkRequestBuilder<SportsAlertWorker>().build()
+        WorkManager.getInstance(context).enqueue(alert)
+    }
+
+    fun refreshNow(context: Context) {
+        val network = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-        WorkManager.getInstance(context).enqueue(
-            OneTimeWorkRequestBuilder<SportsAlertWorker>()
-                .setConstraints(constraints)
-                .build()
-        )
+
+        val refresh = OneTimeWorkRequestBuilder<SportsEpgRefreshWorker>()
+            .setConstraints(network)
+            .build()
+        val alert = OneTimeWorkRequestBuilder<SportsAlertWorker>().build()
+
+        WorkManager.getInstance(context)
+            .beginWith(refresh)
+            .then(alert)
+            .enqueue()
     }
 }

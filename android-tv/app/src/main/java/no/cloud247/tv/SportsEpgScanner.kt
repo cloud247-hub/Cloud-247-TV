@@ -38,7 +38,8 @@ object SportsEpgScanner {
     fun scan(
         input: InputStream,
         config: SportsFavoriteConfig,
-        now: Long = System.currentTimeMillis()
+        now: Long = System.currentTimeMillis(),
+        windowMinutes: Int = config.leadMinutes
     ): List<SportsEpgMatch> {
         if (!config.hasFavorites) return emptyList()
 
@@ -48,7 +49,7 @@ object SportsEpgScanner {
 
         val channelNames = linkedMapOf<String, String>()
         val matches = mutableListOf<SportsEpgMatch>()
-        val horizon = now + config.leadMinutes * 60_000L
+        val horizon = now + windowMinutes.coerceAtLeast(config.leadMinutes) * 60_000L
 
         var event = parser.eventType
         while (event != XmlPullParser.END_DOCUMENT) {
@@ -92,7 +93,7 @@ object SportsEpgScanner {
         return matches
             .distinctBy(SportsEpgMatch::notificationKey)
             .sortedBy(SportsEpgMatch::start)
-            .take(12)
+            .take(250)
     }
 
     private fun readChannel(parser: XmlPullParser): Pair<String, String>? {
