@@ -114,12 +114,22 @@ class FullscreenPlayerActivity : FragmentActivity() {
 
     private val sleepRunnable = Runnable {
         NightModePreferences.clearSleepTimer(this)
-        player?.pause()
-        android.widget.Toast.makeText(
-            this,
-            "Sleep timer ferdig. Avspillingen er stoppet.",
-            android.widget.Toast.LENGTH_LONG
-        ).show()
+        if (isCasting) {
+            player?.stop()
+            endCastSession()
+            android.widget.Toast.makeText(
+                this,
+                "Sleep timer ferdig. Chromecast-avspillingen er stoppet.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        } else {
+            player?.pause()
+            android.widget.Toast.makeText(
+                this,
+                "Sleep timer ferdig. Avspillingen er stoppet.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
         finish()
     }
 
@@ -129,13 +139,15 @@ class FullscreenPlayerActivity : FragmentActivity() {
             val remaining = endAt - System.currentTimeMillis()
             if (endAt <= 0L || remaining <= 0L) return
 
-            val baseVolume = if (NightModePreferences.isEnabled(this@FullscreenPlayerActivity)) {
-                NightModePreferences.playerVolume(this@FullscreenPlayerActivity)
-            } else {
-                1f
+            if (!isCasting) {
+                val baseVolume = if (NightModePreferences.isEnabled(this@FullscreenPlayerActivity)) {
+                    NightModePreferences.playerVolume(this@FullscreenPlayerActivity)
+                } else {
+                    1f
+                }
+                val factor = (remaining.coerceAtMost(60_000L) / 60_000f).coerceIn(0.08f, 1f)
+                player?.volume = baseVolume * factor
             }
-            val factor = (remaining.coerceAtMost(60_000L) / 60_000f).coerceIn(0.08f, 1f)
-            player?.volume = baseVolume * factor
             sleepHandler.postDelayed(this, 1_000L)
         }
     }
@@ -433,10 +445,10 @@ class FullscreenPlayerActivity : FragmentActivity() {
         nightFilterView.visibility = if (enabled) View.VISIBLE else View.GONE
         if (enabled) {
             nightFilterView.alpha = NightModePreferences.filterAlpha(this)
-            player?.volume = NightModePreferences.playerVolume(this)
+            if (!isCasting) player?.volume = NightModePreferences.playerVolume(this)
         } else {
             nightFilterView.alpha = 0f
-            player?.volume = 1f
+            if (!isCasting) player?.volume = 1f
         }
         NightModePreferences.applyWindowBrightness(this)
         nightTouch.text = if (enabled) "Natt ✓" else "Natt"
@@ -480,7 +492,9 @@ class FullscreenPlayerActivity : FragmentActivity() {
             "Sleep timer: Av"
         }
 
-        nightStatus.text = if (enabled) {
+        nightStatus.text = if (isCasting) {
+            "Nattfilter og lysstyrke gjelder nettbrettet. Cast-volumet endres ikke. Sleep timer stopper Chromecast."
+        } else if (enabled) {
             "Nattfilter, lavere lysstyrke og redusert app-lyd er aktivt."
         } else {
             "Slå på for roligere bilde og lyd uten å endre systemvolumet."
