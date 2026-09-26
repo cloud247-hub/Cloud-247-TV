@@ -555,52 +555,58 @@ class FullscreenPlayerActivity : FragmentActivity() {
 
     private fun playChannel(channel: Channel) {
         clearAutoFrameRate()
-        playerView.player = null
-        player?.release()
-        player = null
 
         nameView.text = channel.name.ifBlank { "Cloud247 TV" }
         updateProgramInfo(channel)
-        hintView.text = "Laster kanal …"
-        showOverlay()
+        hintView.text = if (isCasting) "Sender kanal til Chromecast …" else "Laster kanal …"
+        if (!isCasting) showOverlay()
 
         try {
-            val session = PlayerFactory.create(this, channel.url)
-            player = session.player
-            playerView.player = session.player
-            session.player.volume = if (NightModePreferences.isEnabled(this)) {
-                NightModePreferences.playerVolume(this)
+            if (player == null) {
+                val session = PlayerFactory.create(this, channel.url)
+                localPlayer = session.player
+
+                player = if (castSupported) {
+                    CastPlayer.Builder(this)
+                        .setLocalPlayer(session.player)
+                        .build()
+                        .also { castPlayer = it }
+                } else {
+                    session.player
+                }
+
+                player?.addListener(playerListener)
+                playerView.player = player
+                player?.setMediaItem(session.mediaItem)
             } else {
-                1f
+                player?.setMediaItem(PlayerFactory.mediaItemFor(channel.url))
             }
-            session.player.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_READY) {
-                        applyDetectedFrameRate(session.player)
-                        refreshHint()
-                        scheduleOverlayHide()
-                    }
-                }
 
-                override fun onTracksChanged(tracks: Tracks) {
-                    playerView.postDelayed({
-                        if (player === session.player) applyDetectedFrameRate(session.player)
-                    }, 150L)
+            if (!isCasting) {
+                player?.volume = if (NightModePreferences.isEnabled(this)) {
+                    NightModePreferences.playerVolume(this)
+                } else {
+                    1f
                 }
+            }
 
-                override fun onPlayerError(error: PlaybackException) {
-                    hintView.text = "Avspillingsfeil: ${error.errorCodeName}"
-                    showOverlay()
-                }
-            })
-            session.player.setMediaItem(session.mediaItem)
-            session.player.prepare()
-            session.player.playWhenReady = true
-            playerView.requestFocus()
+            player?.prepare()
+            player?.playWhenReady = true
+
+            val remote =
+                player?.deviceInfo?.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
+            updateCastMode(remote)
+            refreshCastRemotePanel()
+
+            if (!remote) playerView.requestFocus()
         } catch (error: Exception) {
-            hintView.text =
-                "Kunne ikke starte avspillingen: ${error.message?.take(100) ?: "ukjent feil"}"
-            showOverlay()
+            val message = error.message?.take(120) ?: "ukjent feil"
+            hintView.text = "Kunne ikke starte avspillingen: $message"
+            if (isCasting) {
+                castRemoteContentStatus.text = "Kunne ikke caste kanalen: $message"
+            } else {
+                showOverlay()
+            }
         }
     }
 
