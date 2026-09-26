@@ -321,7 +321,12 @@ class FullscreenPlayerActivity : FragmentActivity() {
             MediaRouteButtonFactory.setUpMediaRouteButton(this, castButton)
             MediaRouteButtonFactory.setUpMediaRouteButton(this, castRemoteRouteButton)
             castButton.visibility = View.VISIBLE
-        } catch (_: Exception) {
+        } catch (error: Throwable) {
+            android.util.Log.w(
+                "Cloud247Cast",
+                "Cast route button unavailable; local playback remains enabled.",
+                error
+            )
             castSupported = false
             castButton.visibility = View.GONE
             castRemoteRouteButton.visibility = View.GONE
@@ -566,15 +571,29 @@ class FullscreenPlayerActivity : FragmentActivity() {
                 val session = PlayerFactory.create(this, channel.url)
                 localPlayer = session.player
 
-                player = if (castSupported) {
-                    CastPlayer.Builder(this)
-                        .setLocalPlayer(session.player)
-                        .build()
-                        .also { castPlayer = it }
-                } else {
-                    session.player
+                var activePlayer: Player = session.player
+
+                if (castSupported) {
+                    try {
+                        val candidate = CastPlayer.Builder(this)
+                            .setLocalPlayer(session.player)
+                            .build()
+                        castPlayer = candidate
+                        activePlayer = candidate
+                    } catch (castError: Throwable) {
+                        android.util.Log.w(
+                            "Cloud247Cast",
+                            "CastPlayer unavailable; continuing with local ExoPlayer.",
+                            castError
+                        )
+                        castSupported = false
+                        castPlayer = null
+                        castButton.visibility = View.GONE
+                        castRemoteRouteButton.visibility = View.GONE
+                    }
                 }
 
+                player = activePlayer
                 player?.addListener(playerListener)
                 playerView.player = player
                 player?.setMediaItem(session.mediaItem)
