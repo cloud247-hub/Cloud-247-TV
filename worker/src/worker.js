@@ -1,3 +1,5 @@
+import { handleSportsUpcoming } from './sports.js';
+
 const DEFAULT_ORIGINS = ['https://tv.cloud247.no'];
 const PAIR_TTL_MS = 10 * 60 * 1000;
 const PAIR_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -45,7 +47,7 @@ export default {
     if (request.method === 'GET' && requestUrl.pathname === '/health') {
       const headers = new Headers(cors);
       headers.set('Cache-Control', 'no-store');
-      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.2.0' }, 200, headers);
+      return json({ ok: true, service: 'cloud247-tv-proxy', version: '1.5.0' }, 200, headers);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/v1/pair/create') {
@@ -63,6 +65,13 @@ export default {
         return json({ error: 'origin_not_allowed' }, 403, cors);
       }
       return submitPairingSession(request, env, cors);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/v1/sports/upcoming') {
+      if (!isTvClient(request)) return json({ error: 'tv_client_required' }, 403, pairCors);
+      const input = await readJson(request);
+      if (!input) return json({ error: 'invalid_json' }, 400, pairCors);
+      return handleSportsUpcoming(input, env, pairCors);
     }
 
     if (request.method !== 'POST' || requestUrl.pathname !== '/v1/fetch') {
