@@ -14,3 +14,31 @@ button{transition:transform .15s ease,background .15s ease}
 button:hover{background:#ffe36a}
 button:active{transform:translateY(1px)}
 @media(max-width:640px){.pair-badge{margin-bottom:9px}.card h1{font-size:2.4rem}}
+
+
+/* v1.3.0 - M3U / Xtream Codes pairing */
+.source-fieldset{border:0;padding:0;margin:0;min-width:0}
+.source-fieldset legend{display:block;font-size:.82rem;font-weight:800;margin:0 0 7px;padding:0}
+.source-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.source-tab{min-height:70px;border:1px solid #cbd4de;border-radius:14px;padding:10px 14px;background:#f8fafc;color:var(--navy);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.source-tab:hover{background:#fffbea;border-color:#e6c328}
+.source-tab:active{transform:translateY(1px)}
+.source-tab.is-active{background:#fff8d8;border-color:#d5b51f;box-shadow:inset 0 0 0 1px #d5b51f}
+.source-tab-title{font-weight:900;font-size:1rem}
+.source-tab-sub{font-size:.76rem;color:var(--muted);margin-top:2px;font-weight:650}
+.source-panel[hidden]{display:none}
+.source-panel small{display:block;color:var(--muted);font-size:.75rem;line-height:1.45;margin-top:6px}
+.xc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.password-wrap{display:flex;align-items:stretch;gap:7px}
+.password-wrap input{min-width:0}
+.password-toggle{flex:0 0 68px;min-height:54px;border:1px solid #cbd4de;border-radius:12px;background:#f8fafc;color:var(--navy);font-weight:800;padding:0 8px;display:block}
+.password-toggle:hover{background:#eef2f6}
+.xc-note{margin-top:12px;padding:11px 12px;border-radius:10px;background:#f8fafc;color:var(--muted);font-size:.78rem;line-height:1.5}
+.submit-button{min-height:54px;border:0;border-radius:12px;padding:0 18px;background:var(--yellow);color:var(--navy);font:inherit;font-weight:900;font-size:1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.submit-button:hover{background:#ffe36a}
+.source-tabs button:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:640px){
+  .source-tabs{grid-template-columns:1fr}
+  .source-tab{min-height:62px}
+  .xc-grid{grid-template-columns:1fr}
+}
