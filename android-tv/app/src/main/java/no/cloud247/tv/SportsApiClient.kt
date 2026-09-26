@@ -13,12 +13,8 @@ object SportsApiClient {
     fun fetchUpcoming(config: SportsHubConfig): SportsHubResponse {
         return try {
             fetchFromWorker(config)
-        } catch (workerError: Exception) {
-            if (hasGolfPreferences(config)) {
-                EspnGolfClient.fetch(config)
-            } else {
-                throw workerError
-            }
+        } catch (_: Exception) {
+            EspnGolfClient.fetch(config)
         }
     }
 
@@ -31,7 +27,7 @@ object SportsApiClient {
             useCaches = false
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Cloud247-TV/1.5.1 (Android)")
+            setRequestProperty("User-Agent", "Cloud247-TV/1.5.4 (Android)")
         }
 
         try {
@@ -65,11 +61,6 @@ object SportsApiClient {
             connection.disconnect()
         }
     }
-
-    private fun hasGolfPreferences(config: SportsHubConfig): Boolean =
-        config.golfPlayers.isNotEmpty() ||
-            config.golfMajors ||
-            config.golfTours.isNotEmpty()
 
     private fun parse(root: JSONObject): SportsHubResponse {
         val eventsJson = root.optJSONArray("events") ?: JSONArray()
