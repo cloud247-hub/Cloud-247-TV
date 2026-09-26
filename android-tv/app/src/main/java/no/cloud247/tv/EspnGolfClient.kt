@@ -10,7 +10,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 object EspnGolfClient {
-    private const val BASE = "https://site.api.espn.com/apis/site/v2/sports/golf"
+    private val BASES = listOf(\n        "https://site.web.api.espn.com/apis/site/v2/sports/golf",\n        "https://site.api.espn.com/apis/site/v2/sports/golf"\n    )
     private const val MAX_BYTES = 4 * 1024 * 1024
 
     private val majorAliases = listOf(
@@ -150,6 +150,21 @@ object EspnGolfClient {
         }
     }
 
+    private fun fetchGolfJson(tour: String, from: String, to: String): JSONObject {
+        var lastError: Exception? = null
+
+        for (base in BASES) {
+            val target = "$base/$tour/scoreboard?dates=$from-$to&limit=100"
+            try {
+                return fetchJson(target)
+            } catch (error: Exception) {
+                lastError = error
+            }
+        }
+
+        throw lastError ?: NetworkException("ESPN Golf er utilgjengelig")
+    }
+
     private fun fetchJson(target: String): JSONObject {
         val connection = (URL(target).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -157,7 +172,7 @@ object EspnGolfClient {
             readTimeout = 20_000
             useCaches = true
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.1")
+            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.2")
         }
 
         try {
