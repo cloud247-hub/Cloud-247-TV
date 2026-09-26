@@ -10,8 +10,8 @@ android {
         applicationId = "no.cloud247.tv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 10501
-        versionName = "1.5.1"
+        versionCode = 10502
+        versionName = "1.5.2"
     }
 
     buildTypes {
