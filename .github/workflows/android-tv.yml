@@ -58,7 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.5.2 fixes ESPN Golf HTTP 403 by preferring site.web.api.espn.com and falling back to site.api.espn.com, keeping golf available without API keys."
+          RELEASE_NOTES="Android v1.5.2 fixes ESPN Golf HTTP 403 by using the alternate ESPN web API host first, with the legacy host as fallback. Golf remains available without API keys."
           if gh release view android-tv-v1.5.2 >/dev/null 2>&1; then
             gh release upload android-tv-v1.5.2 Cloud247-TV-Android-v1.5.2.apk --clobber
             gh release edit android-tv-v1.5.2 --title "Cloud247 TV Android v1.5.2" --notes "$RELEASE_NOTES"
