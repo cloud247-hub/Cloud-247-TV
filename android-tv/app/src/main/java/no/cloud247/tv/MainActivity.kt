@@ -45,6 +45,7 @@ class MainActivity : Activity() {
         const val EXTRA_SPORTS_CHANNEL_ID = "sports_channel_id"
         const val EXTRA_SPORTS_CHANNEL_NAME = "sports_channel_name"
         const val EXTRA_SPORTS_EVENT_TITLE = "sports_event_title"
+        const val EXTRA_OPEN_SPORTS_HUB = "open_sports_hub"
 
         private val NORWAY_TOKEN_REGEX =
             Regex("(^|[\\s|:_\\-\\[\\]])NO($|[\\s|:_\\-\\[\\]])")
@@ -100,6 +101,8 @@ class MainActivity : Activity() {
     private var favoriteHoldTriggered = false
     private var pendingSportsChannelId: String? = null
     private var pendingSportsChannelName: String? = null
+    private var pendingOpenSportsHub = false
+    private var favoriteKeyHeld = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -177,6 +180,12 @@ class MainActivity : Activity() {
             openFullscreen(channel)
         }
 
+        channelList.setOnItemLongClickListener { _, _, position, _ ->
+            if (position < 0 || position >= channelAdapter.count) return@setOnItemLongClickListener false
+            toggleFavoriteWithFeedback(channelAdapter.getItem(position))
+            true
+        }
+
         channelList.setOnKeyListener { _, keyCode, event ->
             if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER && keyCode != KeyEvent.KEYCODE_ENTER) {
                 return@setOnKeyListener false
@@ -190,24 +199,20 @@ class MainActivity : Activity() {
                 KeyEvent.ACTION_DOWN -> {
                     if (event.repeatCount == 0) {
                         favoriteHoldTriggered = false
+                        favoriteKeyHeld = true
                         selectChannel(channel)
                         favoriteHoldHandler.removeCallbacksAndMessages(null)
                         favoriteHoldHandler.postDelayed({
-                            if (channelList.hasFocus()) {
+                            if (favoriteKeyHeld) {
                                 favoriteHoldTriggered = true
-                                toggleFavorite(channel)
-                                val isFavorite = channel.favoriteKey() in favorites
-                                Toast.makeText(
-                                    this,
-                                    if (isFavorite) "★ Lagt til i Favoritter" else "Fjernet fra Favoritter",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                toggleFavoriteWithFeedback(channel)
                             }
-                        }, 650L)
+                        }, 600L)
                     }
                     true
                 }
-                KeyEvent.ACTION_UP -> {
+                KeyEvent.ACTION_UP, KeyEvent.ACTION_CANCEL -> {
+                    favoriteKeyHeld = false
                     favoriteHoldHandler.removeCallbacksAndMessages(null)
                     if (!favoriteHoldTriggered) {
                         selectChannel(channel)
@@ -242,7 +247,7 @@ class MainActivity : Activity() {
         }
         sportsButton.setOnClickListener {
             if (DeviceProfile.isTablet(this)) {
-                startActivity(Intent(this, SportsAlertsActivity::class.java))
+                openSportsHub()
             }
         }
         changePlaylistButton.setOnClickListener { showSourcePanel() }
@@ -395,6 +400,10 @@ class MainActivity : Activity() {
         }
 
         tryOpenPendingSportsChannel()
+        if (pendingOpenSportsHub) {
+            pendingOpenSportsHub = false
+            openSportsHub()
+        }
     }
 
     private fun renderGroups() {
@@ -549,6 +558,16 @@ class MainActivity : Activity() {
         renderChannels()
     }
 
+    private fun toggleFavoriteWithFeedback(channel: Channel) {
+        toggleFavorite(channel)
+        val isFavorite = channel.favoriteKey() in favorites
+        Toast.makeText(
+            this,
+            if (isFavorite) "★ Lagt til i Favoritter" else "Fjernet fra Favoritter",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
     private fun showEpgDialog() {
         if (playlist.channels.isEmpty()) return
         val input = EditText(this).apply {
@@ -643,6 +662,7 @@ class MainActivity : Activity() {
         pendingSportsChannelName = sourceIntent
             ?.getStringExtra(EXTRA_SPORTS_CHANNEL_NAME)
             ?.takeIf { it.isNotBlank() }
+        pendingOpenSportsHub = sourceIntent?.getBooleanExtra(EXTRA_OPEN_SPORTS_HUB, false) == true
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -651,6 +671,10 @@ class MainActivity : Activity() {
         captureSportsIntent(intent)
         if (playlist.channels.isNotEmpty()) {
             tryOpenPendingSportsChannel()
+            if (pendingOpenSportsHub) {
+                pendingOpenSportsHub = false
+                openSportsHub()
+            }
         }
     }
 
@@ -680,6 +704,11 @@ class MainActivity : Activity() {
                 putExtra(FullscreenPlayerActivity.EXTRA_NAME, channel.name)
             })
         }
+    }
+
+    private fun openSportsHub() {
+        SportsHubActivity.prepareSession(playlist.channels, epgData)
+        startActivity(Intent(this, SportsHubActivity::class.java))
     }
 
     private fun showSourcePanel() {
@@ -818,6 +847,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         stopPairing()
+        favoriteKeyHeld = false
         favoriteHoldHandler.removeCallbacksAndMessages(null)
         executor.shutdownNow()
         super.onDestroy()

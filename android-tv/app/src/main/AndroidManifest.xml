@@ -20,6 +20,11 @@
         android:usesCleartextTraffic="true">
 
         <activity
+            android:name=".SportsHubActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
+        <activity
             android:name=".SportsAlertsActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
