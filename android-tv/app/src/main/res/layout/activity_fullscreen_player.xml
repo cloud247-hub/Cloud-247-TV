@@ -15,6 +15,15 @@
         app:show_buffering="when_playing"
         app:use_controller="false" />
 
+    <View
+        android:id="@+id/fullscreenNightFilter"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#33201008"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/fullscreenOverlay"
         android:layout_width="620dp"
@@ -135,6 +144,122 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/fullscreenNightPanel"
+        android:layout_width="420dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:background="#FA020A12"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NATTMODUS"
+            android:textColor="@color/yellow"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/fullscreenNightStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="18dp"
+            android:text="Roligere bilde og lyd for kvelden."
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/fullscreenNightToggle"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@drawable/focus_button"
+            android:focusable="true"
+            android:text="Nattmodus: Av"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fullscreenSleepTimer"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@drawable/focus_button"
+            android:focusable="true"
+            android:text="Sleep timer: Av"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fullscreenNightFilterButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@drawable/focus_button"
+            android:focusable="true"
+            android:text="Nattfilter: Normal"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fullscreenNightVolume"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@drawable/focus_button"
+            android:focusable="true"
+            android:text="Nattlyd: 45 %"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fullscreenNightBrightness"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@drawable/focus_button"
+            android:focusable="true"
+            android:text="Lysstyrke: 30 %"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="1dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="← åpner nattmenyen · → åpner kanaler"
+            android:textColor="@color/muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/fullscreenTouchControls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -163,15 +288,33 @@
             android:background="#553C5D78" />
 
         <TextView
+            android:id="@+id/fullscreenNight"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:minWidth="120dp"
+            android:gravity="center"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp"
+            android:text="Natt"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="34dp"
+            android:background="#553C5D78" />
+
+        <TextView
             android:id="@+id/fullscreenChannels"
             android:layout_width="wrap_content"
             android:layout_height="56dp"
-            android:minWidth="150dp"
+            android:minWidth="130dp"
             android:gravity="center"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp"
             android:text="Kanaler"
-            android:textColor="@color/yellow"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 

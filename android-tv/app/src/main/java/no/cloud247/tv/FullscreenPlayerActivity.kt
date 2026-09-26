@@ -65,15 +65,36 @@ class FullscreenPlayerActivity : Activity() {
     private lateinit var overlay: LinearLayout
     private lateinit var touchControls: LinearLayout
     private lateinit var previousTouch: TextView
+    private lateinit var nightTouch: TextView
     private lateinit var channelsTouch: TextView
     private lateinit var nextTouch: TextView
+    private lateinit var nightFilterView: View
+    private lateinit var nightPanel: LinearLayout
+    private lateinit var nightStatus: TextView
+    private lateinit var nightToggle: TextView
+    private lateinit var sleepTimer: TextView
+    private lateinit var nightFilterButton: TextView
+    private lateinit var nightVolume: TextView
+    private lateinit var nightBrightness: TextView
     private lateinit var channelPanel: LinearLayout
     private lateinit var channelPanelTitle: TextView
     private lateinit var channelListView: ListView
     private lateinit var channelPanelAdapter: MiniChannelAdapter
 
     private val overlayHandler = Handler(Looper.getMainLooper())
+    private val sleepHandler = Handler(Looper.getMainLooper())
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    private val sleepRunnable = Runnable {
+        NightModePreferences.clearSleepTimer(this)
+        player?.pause()
+        android.widget.Toast.makeText(
+            this,
+            "Sleep timer ferdig. Avspillingen er stoppet.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+        finish()
+    }
 
     private var player: ExoPlayer? = null
     private var channels: List<Channel> = emptyList()
@@ -100,8 +121,17 @@ class FullscreenPlayerActivity : Activity() {
         overlay = findViewById(R.id.fullscreenOverlay)
         touchControls = findViewById(R.id.fullscreenTouchControls)
         previousTouch = findViewById(R.id.fullscreenPrevious)
+        nightTouch = findViewById(R.id.fullscreenNight)
         channelsTouch = findViewById(R.id.fullscreenChannels)
         nextTouch = findViewById(R.id.fullscreenNext)
+        nightFilterView = findViewById(R.id.fullscreenNightFilter)
+        nightPanel = findViewById(R.id.fullscreenNightPanel)
+        nightStatus = findViewById(R.id.fullscreenNightStatus)
+        nightToggle = findViewById(R.id.fullscreenNightToggle)
+        sleepTimer = findViewById(R.id.fullscreenSleepTimer)
+        nightFilterButton = findViewById(R.id.fullscreenNightFilterButton)
+        nightVolume = findViewById(R.id.fullscreenNightVolume)
+        nightBrightness = findViewById(R.id.fullscreenNightBrightness)
         channelPanel = findViewById(R.id.fullscreenChannelPanel)
         channelPanelTitle = findViewById(R.id.fullscreenChannelPanelTitle)
         channelListView = findViewById(R.id.fullscreenChannelList)
@@ -127,18 +157,24 @@ class FullscreenPlayerActivity : Activity() {
         }
 
         configureTouchControls()
+        configureNightMode()
+        applyNightMode()
+        restoreSleepTimer()
         clockView.text = timeFormat.format(Date())
         playCurrentChannel()
     }
 
     override fun onStart() {
         super.onStart()
+        restoreSleepTimer()
+        applyNightMode()
         player?.play()
     }
 
     private fun configureTouchControls() {
         previousTouch.setOnClickListener { switchChannel(-1) }
         nextTouch.setOnClickListener { switchChannel(1) }
+        nightTouch.setOnClickListener { showNightPanel() }
         channelsTouch.setOnClickListener { showChannelPanel() }
 
         val swipeThreshold = 100f * resources.displayMetrics.density
@@ -192,6 +228,137 @@ class FullscreenPlayerActivity : Activity() {
         }
     }
 
+    private fun configureNightMode() {
+        nightToggle.setOnClickListener {
+            NightModePreferences.setEnabled(
+                this,
+                !NightModePreferences.isEnabled(this)
+            )
+            applyNightMode()
+            refreshNightPanel()
+        }
+
+        sleepTimer.setOnClickListener {
+            cycleSleepTimer()
+            refreshNightPanel()
+        }
+
+        nightFilterButton.setOnClickListener {
+            NightModePreferences.cycleFilter(this)
+            applyNightMode()
+            refreshNightPanel()
+        }
+
+        nightVolume.setOnClickListener {
+            NightModePreferences.cycleVolume(this)
+            applyNightMode()
+            refreshNightPanel()
+        }
+
+        nightBrightness.setOnClickListener {
+            NightModePreferences.cycleBrightness(this)
+            applyNightMode()
+            refreshNightPanel()
+        }
+    }
+
+    private fun applyNightMode() {
+        val enabled = NightModePreferences.isEnabled(this)
+        nightFilterView.visibility = if (enabled) View.VISIBLE else View.GONE
+        if (enabled) {
+            nightFilterView.alpha = NightModePreferences.filterAlpha(this)
+            player?.volume = NightModePreferences.playerVolume(this)
+        } else {
+            nightFilterView.alpha = 0f
+            player?.volume = 1f
+        }
+        NightModePreferences.applyWindowBrightness(this)
+        nightTouch.text = if (enabled) "Natt ✓" else "Natt"
+        refreshHint()
+    }
+
+    private fun showNightPanel() {
+        hideChannelPanelOnly()
+        overlayHandler.removeCallbacksAndMessages(null)
+        refreshNightPanel()
+        nightPanel.visibility = View.VISIBLE
+        nightToggle.requestFocus()
+    }
+
+    private fun hideNightPanel() {
+        if (nightPanel.visibility == View.GONE) return
+        nightPanel.visibility = View.GONE
+        playerView.requestFocus()
+        showOverlay()
+    }
+
+    private fun hideChannelPanelOnly() {
+        if (channelPanel.visibility == View.VISIBLE) {
+            channelPanel.visibility = View.GONE
+        }
+    }
+
+    private fun refreshNightPanel() {
+        val enabled = NightModePreferences.isEnabled(this)
+        nightToggle.text = "Nattmodus: " + if (enabled) "På" else "Av"
+        nightFilterButton.text = "Nattfilter: ${NightModePreferences.filterLabel(this)}"
+        nightVolume.text = "Nattlyd: ${NightModePreferences.volumeLabel(this)}"
+        nightBrightness.text = "Lysstyrke: ${NightModePreferences.brightnessLabel(this)}"
+
+        val endAt = NightModePreferences.sleepEndAt(this)
+        val remaining = endAt - System.currentTimeMillis()
+        sleepTimer.text = if (remaining > 0L) {
+            val minutes = ((remaining + 59_999L) / 60_000L).toInt()
+            "Sleep timer: ${minutes} min igjen"
+        } else {
+            "Sleep timer: Av"
+        }
+
+        nightStatus.text = if (enabled) {
+            "Nattfilter, lavere lysstyrke og redusert app-lyd er aktivt."
+        } else {
+            "Slå på for roligere bilde og lyd uten å endre systemvolumet."
+        }
+    }
+
+    private fun cycleSleepTimer() {
+        val endAt = NightModePreferences.sleepEndAt(this)
+        val remainingMinutes = if (endAt > System.currentTimeMillis()) {
+            ((endAt - System.currentTimeMillis()) / 60_000L).toInt()
+        } else {
+            0
+        }
+
+        val next = when {
+            remainingMinutes <= 0 -> 30
+            remainingMinutes <= 30 -> 60
+            remainingMinutes <= 60 -> 90
+            remainingMinutes <= 90 -> 120
+            else -> 0
+        }
+
+        if (next == 0) {
+            NightModePreferences.clearSleepTimer(this)
+        } else {
+            NightModePreferences.setSleepMinutes(this, next)
+        }
+        restoreSleepTimer()
+    }
+
+    private fun restoreSleepTimer() {
+        sleepHandler.removeCallbacksAndMessages(null)
+        val endAt = NightModePreferences.sleepEndAt(this)
+        val delay = endAt - System.currentTimeMillis()
+
+        if (endAt <= 0L) return
+        if (delay <= 0L) {
+            NightModePreferences.clearSleepTimer(this)
+            return
+        }
+
+        sleepHandler.postDelayed(sleepRunnable, delay)
+    }
+
     private fun playCurrentChannel() {
         val channel = channels.getOrNull(channelIndex)
         if (channel == null || channel.url.isBlank()) {
@@ -218,6 +385,11 @@ class FullscreenPlayerActivity : Activity() {
             val session = PlayerFactory.create(this, channel.url)
             player = session.player
             playerView.player = session.player
+            session.player.volume = if (NightModePreferences.isEnabled(this)) {
+                NightModePreferences.playerVolume(this)
+            } else {
+                1f
+            }
             session.player.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_READY) {
@@ -292,6 +464,7 @@ class FullscreenPlayerActivity : Activity() {
 
     private fun showChannelPanel() {
         if (channels.isEmpty()) return
+        if (nightPanel.visibility == View.VISIBLE) nightPanel.visibility = View.GONE
         overlayHandler.removeCallbacksAndMessages(null)
         channelPanelTitle.text = "KANALER · ${channels.size}"
         channelPanelAdapter.notifyDataSetChanged()
@@ -332,7 +505,7 @@ class FullscreenPlayerActivity : Activity() {
     }
 
     private fun hideOverlay() {
-        if (channelPanel.visibility == View.VISIBLE) return
+        if (channelPanel.visibility == View.VISIBLE || nightPanel.visibility == View.VISIBLE) return
 
         overlay.animate().cancel()
         touchControls.animate().cancel()
@@ -353,6 +526,10 @@ class FullscreenPlayerActivity : Activity() {
     private fun toggleOverlay() {
         if (channelPanel.visibility == View.VISIBLE) {
             hideChannelPanel()
+            return
+        }
+        if (nightPanel.visibility == View.VISIBLE) {
+            hideNightPanel()
             return
         }
 
@@ -459,10 +636,23 @@ class FullscreenPlayerActivity : Activity() {
         } else {
             ""
         }
-        hintView.text = REMOTE_HINT + afr
+        val night = if (NightModePreferences.isEnabled(this)) " · Natt" else ""
+        hintView.text = REMOTE_HINT + afr + night
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (nightPanel.visibility == View.VISIBLE) {
+            return when (keyCode) {
+                KeyEvent.KEYCODE_BACK,
+                KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_MENU -> {
+                    hideNightPanel()
+                    true
+                }
+                else -> super.onKeyDown(keyCode, event)
+            }
+        }
+
         if (channelPanel.visibility == View.VISIBLE) {
             return when (keyCode) {
                 KeyEvent.KEYCODE_BACK,
@@ -502,9 +692,13 @@ class FullscreenPlayerActivity : Activity() {
                 true
             }
 
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                showNightPanel()
+                true
+            }
+
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_DPAD_LEFT,
             KeyEvent.KEYCODE_INFO -> {
                 showOverlay()
                 true
@@ -526,6 +720,7 @@ class FullscreenPlayerActivity : Activity() {
 
     override fun onDestroy() {
         overlayHandler.removeCallbacksAndMessages(null)
+        sleepHandler.removeCallbacksAndMessages(null)
         clearAutoFrameRate()
         playerView.player = null
         player?.release()

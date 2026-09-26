@@ -111,6 +111,11 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        NightModePreferences.applyWindowBrightness(this)
+    }
+
     private fun bindViews() {
         sourcePanel = findViewById(R.id.sourcePanel)
         tvPanel = findViewById(R.id.tvPanel)

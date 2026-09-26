@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.2.1.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.3.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.2.1
-          path: Cloud247-TV-Android-v1.2.1.apk
+          name: Cloud247-TV-Android-v1.3.0
+          path: Cloud247-TV-Android-v1.3.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,8 +58,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view android-tv-v1.2.1 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.2.1 Cloud247-TV-Android-v1.2.1.apk --clobber
+          if gh release view android-tv-v1.3.0 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk --clobber
           else
-            gh release create android-tv-v1.2.1 Cloud247-TV-Android-v1.2.1.apk               --title "Cloud247 TV Android v1.2.1"               --notes "Android TV v1.2.1 adds fullscreen touch controls for tablets: tap zones, swipe channel switching and visible Previous / Info / Next controls, while keeping full remote support."
+            gh release create android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk               --title "Cloud247 TV Android v1.3.0"               --notes "Android TV v1.3.0 adds fullscreen touch controls for tablets: tap zones, swipe channel switching and visible Previous / Info / Next controls, while keeping full remote support."
           fi
