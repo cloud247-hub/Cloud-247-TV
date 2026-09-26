@@ -10,7 +10,10 @@ import java.util.Locale
 import java.util.TimeZone
 
 object EspnGolfClient {
-    private val BASES = listOf(\n        "https://site.web.api.espn.com/apis/site/v2/sports/golf",\n        "https://site.api.espn.com/apis/site/v2/sports/golf"\n    )
+    private val BASES = listOf(
+        "https://site.web.api.espn.com/apis/site/v2/sports/golf",
+        "https://site.api.espn.com/apis/site/v2/sports/golf"
+    )
     private const val MAX_BYTES = 4 * 1024 * 1024
 
     private val majorAliases = listOf(
@@ -34,7 +37,9 @@ object EspnGolfClient {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val from = formatter.format(Date())
-        val to = formatter.format(Date(System.currentTimeMillis() + 14L * 24L * 60L * 60L * 1000L))
+        val to = formatter.format(
+            Date(System.currentTimeMillis() + 14L * 24L * 60L * 60L * 1000L)
+        )
 
         val events = tours
             .flatMap { tour -> fetchTour(tour, from, to, config) }
@@ -57,8 +62,7 @@ object EspnGolfClient {
         to: String,
         config: SportsHubConfig
     ): List<SportsHubEvent> {
-        val url = "$BASE/$tour/scoreboard?dates=$from-$to&limit=100"
-        val root = fetchJson(url)
+        val root = fetchGolfJson(tour, from, to)
         val events = root.optJSONArray("events") ?: JSONArray()
         val out = mutableListOf<SportsHubEvent>()
 
@@ -67,14 +71,14 @@ object EspnGolfClient {
             val title = raw.optString("name")
                 .ifBlank { raw.optString("shortName") }
                 .trim()
+
             val start = parseDate(
-                raw.optString("date")
-                    .ifBlank {
-                        raw.optJSONArray("competitions")
-                            ?.optJSONObject(0)
-                            ?.optString("date")
-                            .orEmpty()
-                    }
+                raw.optString("date").ifBlank {
+                    raw.optJSONArray("competitions")
+                        ?.optJSONObject(0)
+                        ?.optString("date")
+                        .orEmpty()
+                }
             ) ?: continue
 
             if (start.time < System.currentTimeMillis() - 12L * 60L * 60L * 1000L) continue
@@ -172,6 +176,7 @@ object EspnGolfClient {
             readTimeout = 20_000
             useCaches = true
             setRequestProperty("Accept", "application/json")
+            setRequestProperty("Accept-Language", "en-US,en;q=0.9")
             setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.2")
         }
 
@@ -198,7 +203,9 @@ object EspnGolfClient {
                 val read = input.read(buffer)
                 if (read < 0) break
                 total += read
-                if (total > MAX_BYTES) throw NetworkException("ESPN Golf-responsen er for stor")
+                if (total > MAX_BYTES) {
+                    throw NetworkException("ESPN Golf-responsen er for stor")
+                }
                 out.write(buffer, 0, read)
             }
 
