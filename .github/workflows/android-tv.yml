@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.4.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.5.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.5.4
-          path: Cloud247-TV-Android-v1.5.4.apk
+          name: Cloud247-TV-Android-v1.5.5
+          path: Cloud247-TV-Android-v1.5.5.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,10 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.5.4 keeps the stable v1.5.2 player code and changes Sports Hub only: content loads without favorite teams or players, direct ESPN Golf shows PGA Tour, DP World Tour, LPGA and LIV, and favorites remain for alerts rather than mandatory filtering."
-          if gh release view android-tv-v1.5.4 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.5.4 Cloud247-TV-Android-v1.5.4.apk --clobber
-            gh release edit android-tv-v1.5.4 --title "Cloud247 TV Android v1.5.4" --notes "$RELEASE_NOTES"
+          RELEASE_NOTES="Android v1.5.5 keeps the stable v1.5.2 player code and fixes Sports Hub golf only: ESPN minute-precision timestamps are parsed correctly, ongoing multi-day tournaments remain visible, and all PGA/DP World/LPGA/LIV events can be shown without favorite players."
+          if gh release view android-tv-v1.5.5 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.5.5 Cloud247-TV-Android-v1.5.5.apk --clobber
+            gh release edit android-tv-v1.5.5 --title "Cloud247 TV Android v1.5.5" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.5.4 Cloud247-TV-Android-v1.5.4.apk --title "Cloud247 TV Android v1.5.4" --notes "$RELEASE_NOTES"
+            gh release create android-tv-v1.5.5 Cloud247-TV-Android-v1.5.5.apk --title "Cloud247 TV Android v1.5.5" --notes "$RELEASE_NOTES"
           fi
