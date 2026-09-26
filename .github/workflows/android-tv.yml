@@ -58,8 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          RELEASE_NOTES="Android v1.3.0 adds Night Mode with a warm/dark video filter, reduced in-app playback volume, screen dimming, persistent settings, and a 30/60/90/120 minute sleep timer with remote and touch controls."
           if gh release view android-tv-v1.3.0 >/dev/null 2>&1; then
             gh release upload android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk --clobber
+            gh release edit android-tv-v1.3.0 --title "Cloud247 TV Android v1.3.0" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk               --title "Cloud247 TV Android v1.3.0"               --notes "Android TV v1.3.0 adds fullscreen touch controls for tablets: tap zones, swipe channel switching and visible Previous / Info / Next controls, while keeping full remote support."
+            gh release create android-tv-v1.3.0 Cloud247-TV-Android-v1.3.0.apk --title "Cloud247 TV Android v1.3.0" --notes "$RELEASE_NOTES"
           fi
