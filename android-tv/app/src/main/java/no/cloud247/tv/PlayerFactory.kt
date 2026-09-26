@@ -37,14 +37,20 @@ object PlayerFactory {
             .build()
 
         val builder = MediaItem.Builder().setUri(prepared.url)
-        if (looksLikeHls(originalUrl)) builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+        when {
+            looksLikeHls(originalUrl) -> builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+            looksLikeTransportStream(originalUrl) -> builder.setMimeType(MimeTypes.VIDEO_MP2T)
+        }
 
         return Session(player, builder.build())
     }
 
     fun mediaItemFor(originalUrl: String): MediaItem {
         val builder = MediaItem.Builder().setUri(Uri.parse(originalUrl))
-        if (looksLikeHls(originalUrl)) builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+        when {
+            looksLikeHls(originalUrl) -> builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+            looksLikeTransportStream(originalUrl) -> builder.setMimeType(MimeTypes.VIDEO_MP2T)
+        }
         return builder.build()
     }
 
@@ -52,6 +58,12 @@ object PlayerFactory {
         return url.contains(".m3u8", ignoreCase = true) ||
             url.contains("output=m3u8", ignoreCase = true) ||
             url.contains("type=m3u8", ignoreCase = true)
+    }
+
+    private fun looksLikeTransportStream(url: String): Boolean {
+        return url.contains(".ts", ignoreCase = true) ||
+            url.contains("output=ts", ignoreCase = true) ||
+            url.contains("output=mpegts", ignoreCase = true)
     }
 
     private fun prepareUrl(value: String): PreparedUrl {
