@@ -1,6 +1,9 @@
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 const TENNIS_BASE = 'https://api.livetennisapi.com/api/public/v1';
-const ESPN_GOLF_BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf';
+const ESPN_GOLF_BASES = [
+  'https://site.web.api.espn.com/apis/site/v2/sports/golf',
+  'https://site.api.espn.com/apis/site/v2/sports/golf',
+];
 
 const FOOTBALL_TEAM_LIMIT = 8;
 const FOOTBALL_LEAGUE_LIMIT = 6;
@@ -34,13 +37,6 @@ const GOLF_TOURS = {
 
 export async function handleSportsUpcoming(input, env, headers) {
   const config = normalizeConfig(input);
-  if (!config.hasFavorites) {
-    return jsonResponse({
-      events: [],
-      sources: emptySourceStatus(env),
-      generated_at: new Date().toISOString(),
-    }, 200, headers);
-  }
 
   const from = isoDate(new Date());
   const to = isoDate(new Date(Date.now() + 14 * 86400000));
@@ -121,6 +117,20 @@ async function collectFootball(config, env, from, to) {
 
   try {
     const jobs = [];
+
+    // Sports Hub is a discovery view, not only a favorites view.
+    // One cached global fixture request gives users useful football even
+    // before they configure teams or leagues.
+    jobs.push((async () => {
+      const broadTo = isoDate(new Date(Date.now() + 3 * 86400000));
+      const payload = await footballGet(
+        env,
+        `/fixtures?from=${from}&to=${broadTo}`,
+        `all-fixtures/${from}/${broadTo}`,
+        2 * 60 * 60
+      );
+      return footballFixturesForHub(payload, config, from, broadTo);
+    })());
 
     for (const teamName of config.footballTeams) {
       jobs.push((async () => {
@@ -251,13 +261,69 @@ function footballFixtures(payload, matchType, matchName, from, to) {
   }).filter(Boolean);
 }
 
+function footballFixturesForHub(payload, config, from, to) {
+  const min = Date.parse(`${from}T00:00:00Z`);
+  const max = Date.parse(`${to}T23:59:59Z`);
+  const rows = Array.isArray(payload?.response) ? payload.response : [];
+
+  return rows.map((row) => {
+    const start = Date.parse(String(row?.fixture?.date || ''));
+    if (!Number.isFinite(start) || start < min || start > max) return null;
+
+    const home = String(row?.teams?.home?.name || '').trim();
+    const away = String(row?.teams?.away?.name || '').trim();
+    const competition = String(row?.league?.name || '').trim();
+    const title = [home, away].filter(Boolean).join(' – ');
+    if (!title) return null;
+
+    const combinedTeams = normalize(`${home} ${away}`);
+    let matchType = 'football_all';
+    let matchName = competition || 'Fotball';
+
+    const team = config.footballTeams.find((name) =>
+      combinedTeams.includes(normalize(name))
+    );
+    if (team) {
+      matchType = 'football_team';
+      matchName = team;
+    } else {
+      const league = config.footballLeagues.find((name) =>
+        normalize(competition).includes(normalize(name))
+      );
+      if (league) {
+        matchType = 'football_league';
+        matchName = league;
+      } else if (
+        config.premierLeague &&
+        normalize(competition).includes('premier league')
+      ) {
+        matchType = 'premier_league';
+        matchName = 'Premier League';
+      }
+    }
+
+    return {
+      id: `football:${row?.fixture?.id || title + ':' + start}`,
+      sport: 'football',
+      title,
+      competition,
+      start_ms: start,
+      start_at: new Date(start).toISOString(),
+      participants: [home, away].filter(Boolean),
+      match_type: matchType,
+      match_name: matchName,
+      source: 'API-Football',
+    };
+  }).filter(Boolean);
+}
+
 async function footballGet(env, path, cacheKey, ttlSeconds) {
   return cachedJson(`football/${cacheKey}`, ttlSeconds, async () => {
     const response = await fetch(API_FOOTBALL_BASE + path, {
       headers: {
         'Accept': 'application/json',
         'x-apisports-key': String(env.API_FOOTBALL_KEY),
-        'User-Agent': 'Cloud247-TV-Sports/1.5.0',
+        'User-Agent': 'Cloud247-TV-Sports/1.7.1',
       },
     });
     if (!response.ok) throw new Error(`http_${response.status}`);
@@ -275,10 +341,6 @@ async function footballGet(env, path, cacheKey, ttlSeconds) {
 async function collectTennis(config, env) {
   if (!env.LIVE_TENNIS_API_KEY) {
     return { events: [], status: sourceStatus(false, 'LIVE_TENNIS_API_KEY mangler') };
-  }
-
-  if (!config.tennisPlayers.length && !config.tennisMajors) {
-    return { events: [], status: sourceStatus(true, 'Live Tennis API') };
   }
 
   try {
@@ -316,7 +378,11 @@ async function collectTennis(config, env) {
         }
       }
 
-      if (!matchType) continue;
+      if (!matchType) {
+        matchType = 'tennis_all';
+        matchName = tournament || 'Tennis';
+      }
+
       events.push({
         id: `tennis:${row?.id || p1 + ':' + p2 + ':' + start}`,
         sport: 'tennis',
@@ -343,7 +409,7 @@ async function tennisFixtures(tour, env) {
       headers: {
         'Accept': 'application/json',
         'X-API-Key': String(env.LIVE_TENNIS_API_KEY),
-        'User-Agent': 'Cloud247-TV-Sports/1.5.0',
+        'User-Agent': 'Cloud247-TV-Sports/1.7.1',
       },
     });
     if (!response.ok) throw new Error(`http_${response.status}`);
@@ -368,13 +434,8 @@ function tennisStart(row) {
 }
 
 async function collectGolf(config, from, to) {
-  const wantsGolf = config.golfPlayers.length || config.golfMajors || config.golfTours.length;
-  if (!wantsGolf) return { events: [], status: sourceStatus(true, 'ESPN Golf') };
-
   try {
-    const tours = config.golfTours.length
-      ? [...new Set(config.golfTours)]
-      : ['pga', 'eur', 'lpga', 'liv'];
+    const tours = ['pga', 'eur', 'lpga', 'liv'];
 
     const payloads = await Promise.all(
       tours.map(async (tour) => ({
@@ -418,7 +479,11 @@ async function collectGolf(config, from, to) {
           matchName = GOLF_TOURS[tour] || tour.toUpperCase();
         }
 
-        if (!matchType) continue;
+        if (!matchType) {
+          matchType = 'golf_all';
+          matchName = GOLF_TOURS[tour] || tour.toUpperCase();
+        }
+
         events.push({
           id: `golf:${tour}:${row?.id || title + ':' + start}`,
           sport: 'golf',
@@ -444,15 +509,29 @@ async function espnGolfScoreboard(tour, from, to) {
   const start = from.replaceAll('-', '');
   const end = to.replaceAll('-', '');
   return cachedJson(`golf/${tour}/${start}/${end}`, 60 * 60, async () => {
-    const url = `${ESPN_GOLF_BASE}/${tour}/scoreboard?dates=${start}-${end}&limit=100`;
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Cloud247-TV-Sports/1.5.0',
-      },
-    });
-    if (!response.ok) throw new Error(`http_${response.status}`);
-    return response.json();
+    let lastError = null;
+
+    for (const base of ESPN_GOLF_BASES) {
+      const url = `${base}/${tour}/scoreboard?dates=${start}-${end}&limit=100`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'Cloud247-TV-Sports/1.7.1',
+          },
+        });
+        if (!response.ok) {
+          lastError = new Error(`http_${response.status}`);
+          continue;
+        }
+        return response.json();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('espn_unavailable');
   });
 }
 
