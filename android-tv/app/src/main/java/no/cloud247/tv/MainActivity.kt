@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.text.Editable
+import android.text.InputType
 import android.text.TextWatcher
 import android.util.Log
 import android.view.KeyEvent
@@ -69,6 +70,7 @@ class MainActivity : Activity() {
     private lateinit var newPairingButton: Button
     private lateinit var loadPlaylistButton: Button
     private lateinit var pickPlaylistButton: Button
+    private lateinit var xtreamLoginButton: Button
     private lateinit var sourceProgress: ProgressBar
     private lateinit var sourceStatus: TextView
     private lateinit var playlistTitle: TextView
@@ -138,6 +140,7 @@ class MainActivity : Activity() {
         newPairingButton = findViewById(R.id.newPairingButton)
         loadPlaylistButton = findViewById(R.id.loadPlaylistButton)
         pickPlaylistButton = findViewById(R.id.pickPlaylistButton)
+        xtreamLoginButton = findViewById(R.id.xtreamLoginButton)
         sourceProgress = findViewById(R.id.sourceProgress)
         sourceStatus = findViewById(R.id.sourceStatus)
         playlistTitle = findViewById(R.id.playlistTitle)
@@ -228,6 +231,7 @@ class MainActivity : Activity() {
 
     private fun configureActions() {
         loadPlaylistButton.setOnClickListener { loadPlaylistFromUrl() }
+        xtreamLoginButton.setOnClickListener { showXtreamLoginDialog() }
         newPairingButton.setOnClickListener { startPairing() }
         playlistUrl.setOnEditorActionListener { _, actionId, event ->
             val submit = actionId == EditorInfo.IME_ACTION_GO ||
@@ -259,6 +263,116 @@ class MainActivity : Activity() {
         })
     }
 
+    private fun showXtreamLoginDialog() {
+        val server = EditText(this).apply {
+            hint = "Server, f.eks. http://server:8080"
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val username = EditText(this).apply {
+            hint = "Brukernavn"
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+        }
+        val password = EditText(this).apply {
+            hint = "Passord"
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        val wrapper = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(36, 10, 36, 0)
+            addView(
+                server,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                username,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 10 }
+            )
+            addView(
+                password,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 10 }
+            )
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Xtream Codes (XC)")
+            .setMessage(
+                "Skriv inn serveradresse, brukernavn og passord. " +
+                    "Cloud247 TV validerer kontoen og setter opp M3U + XMLTV automatisk."
+            )
+            .setView(wrapper)
+            .setPositiveButton("Logg inn", null)
+            .setNegativeButton("Avbryt", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val serverValue = server.text.toString().trim()
+                val usernameValue = username.text.toString().trim()
+                val passwordValue = password.text.toString()
+
+                var valid = true
+                if (serverValue.isBlank()) {
+                    server.error = "Serveradresse mangler"
+                    valid = false
+                }
+                if (usernameValue.isBlank()) {
+                    username.error = "Brukernavn mangler"
+                    valid = false
+                }
+                if (passwordValue.isBlank()) {
+                    password.error = "Passord mangler"
+                    valid = false
+                }
+                if (!valid) return@setOnClickListener
+
+                dialog.dismiss()
+                loginXtream(serverValue, usernameValue, passwordValue)
+            }
+        }
+
+        dialog.show()
+        server.requestFocus()
+    }
+
+    private fun loginXtream(server: String, username: String, password: String) {
+        stopPairing()
+        setSourceLoading(true, "Logger inn på Xtream Codes …")
+
+        executor.execute {
+            try {
+                val result = XtreamClient.login(server, username, password)
+                runOnUiThread {
+                    sourceStatus.text =
+                        "XC-konto ${result.username} validert (${result.status}). Henter kanaler …"
+                    loadPlaylistUrl(
+                        url = result.playlistUrl,
+                        persistOnSuccess = true,
+                        savedSource = false,
+                        epgFallbackUrl = result.epgUrl
+                    )
+                }
+            } catch (error: Exception) {
+                Log.e(logTag, "xtream_login_failed: ${safeMessage(error)}")
+                runOnUiThread {
+                    setSourceLoading(false, "XC-login feilet: ${safeMessage(error)}")
+                }
+            }
+        }
+    }
+
     private fun loadPlaylistFromUrl() {
         val url = playlistUrl.text.toString().trim()
         if (url.isBlank()) {
@@ -272,14 +386,27 @@ class MainActivity : Activity() {
         loadPlaylistUrl(url, persistOnSuccess = true, savedSource = false)
     }
 
-    private fun loadPlaylistUrl(url: String, persistOnSuccess: Boolean, savedSource: Boolean) {
+    private fun loadPlaylistUrl(
+        url: String,
+        persistOnSuccess: Boolean,
+        savedSource: Boolean,
+        epgFallbackUrl: String? = null
+    ) {
         Log.i(logTag, "playlist_load_start savedSource=$savedSource persist=$persistOnSuccess")
         setSourceLoading(true, if (savedSource) "Henter lagret spilleliste …" else "Henter spilleliste direkte fra IPTV-leverandøren …")
         executor.execute {
             try {
                 val text = NetworkClient.fetchText(url, MAX_M3U_BYTES)
                 val name = try { URL(url).host.removePrefix("www.") } catch (_: Exception) { "Spilleliste" }
-                val parsed = M3uParser.parse(text, name)
+                val parsedRaw = M3uParser.parse(text, name)
+                val derivedEpg = epgFallbackUrl
+                    ?.takeIf { it.isNotBlank() }
+                    ?: XtreamClient.epgUrlFromPlaylistUrl(url)
+                val parsed = if (parsedRaw.epgUrl.isBlank() && !derivedEpg.isNullOrBlank()) {
+                    parsedRaw.copy(epgUrl = derivedEpg)
+                } else {
+                    parsedRaw
+                }
                 val index = buildPlaylistIndex(parsed.channels)
                 runOnUiThread {
                     if (persistOnSuccess) securePlaylistStore.save(url)
@@ -714,7 +841,8 @@ class MainActivity : Activity() {
     private fun showSourcePanel() {
         tvPanel.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
-        sourceStatus.text = "Skann QR-koden med mobilen, eller skriv inn M3U-adressen manuelt."
+        sourceStatus.text =
+            "Skann QR-koden, bruk Xtream Codes-login eller skriv inn M3U-adressen manuelt."
         startPairing()
         newPairingButton.requestFocus()
     }
@@ -723,6 +851,7 @@ class MainActivity : Activity() {
         sourceProgress.visibility = if (loading) View.VISIBLE else View.GONE
         loadPlaylistButton.isEnabled = !loading
         pickPlaylistButton.isEnabled = !loading
+        xtreamLoginButton.isEnabled = !loading
         sourceStatus.text = message
     }
 
