@@ -61,6 +61,6 @@ object SportsChannelMatcher {
             .replace('–', '-')
             .replace('—', '-')
             .replace(Regex("[^a-z0-9æøåáéíóúüöäçñ -]"), " ")
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("\\s+"), " ")
             .trim()
 }
