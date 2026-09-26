@@ -77,7 +77,9 @@ object EspnGolfClient {
                 }
             ) ?: continue
 
-            if (start.time < System.currentTimeMillis() - 12L * 60L * 60L * 1000L) continue
+            // Golf tournaments usually span several days, so keep recently
+            // started events visible while they are still likely in progress.
+            if (start.time < System.currentTimeMillis() - 5L * 24L * 60L * 60L * 1000L) continue
             if (title.isBlank()) continue
 
             val participants = participants(raw)
@@ -176,7 +178,7 @@ object EspnGolfClient {
             useCaches = true
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.4")
+            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.5")
         }
 
         try {
@@ -214,8 +216,20 @@ object EspnGolfClient {
 
     private fun parseDate(value: String): Date? {
         if (value.isBlank()) return null
+
+        // ESPN frequently returns minute-precision ISO timestamps such as
+        // 2026-10-01T04:00Z. Instant.parse() requires seconds, so normalize
+        // those values before parsing.
+        val normalized = if (
+            Regex("""^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}Z$""").matches(value)
+        ) {
+            value.removeSuffix("Z") + ":00Z"
+        } else {
+            value
+        }
+
         return try {
-            Date.from(java.time.Instant.parse(value))
+            Date.from(java.time.Instant.parse(normalized))
         } catch (_: Exception) {
             null
         }
