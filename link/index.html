@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#061a2f">
-  <meta name="description" content="Koble en M3U-spilleliste til Cloud247 TV på Android TV eller Samsung TV.">
+  <meta name="description" content="Koble M3U eller Xtream Codes (XC) til Cloud247 TV på Android TV, Android-nettbrett eller Samsung TV.">
   <title>Koble til Cloud247 TV</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="link.css?v=1.2.0">
-  <script defer src="link.js?v=1.1.0"></script>
+  <link rel="stylesheet" href="link.css?v=1.3.0">
+  <script defer src="link.js?v=1.3.0"></script>
 </head>
 <body>
   <header class="site-header">
@@ -19,11 +19,11 @@
   </header>
 
   <main class="main">
-    <div class="pair-badge">ANDROID TV + SAMSUNG TV · PAIRING</div>
+    <div class="pair-badge">ANDROID TV + TABLET + SAMSUNG TV · PAIRING</div>
     <section class="card" aria-labelledby="title">
       <p class="eyebrow">KOBLE TIL TV</p>
       <h1 id="title">Koble mobilen til TV-en<span>.</span></h1>
-      <p class="lead">Skann QR-koden i Cloud247 TV på Android TV eller Samsung TV, eller skriv inn seks-tegnskoden. Lim inn M3U-adressen én gang – resten skjer på TV-en.</p>
+      <p class="lead">Skann QR-koden i Cloud247 TV eller skriv inn seks-tegnskoden. Velg deretter M3U eller Xtream Codes (XC) – resten skjer på TV-en.</p>
 
       <form id="pairForm" novalidate>
         <label>
@@ -31,22 +31,65 @@
           <input id="pairCode" name="code" maxlength="6" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
         </label>
 
-        <label>
-          <span>M3U / M3U8-adresse</span>
-          <input id="playlistUrl" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://leverandor.example/playlist.m3u">
-        </label>
+        <fieldset class="source-fieldset">
+          <legend>Innloggingsmetode</legend>
+          <div class="source-tabs" role="group" aria-label="Velg innloggingsmetode">
+            <button id="modeM3u" class="source-tab is-active" type="button" aria-pressed="true">
+              <span class="source-tab-title">M3U</span>
+              <span class="source-tab-sub">Spillelisteadresse</span>
+            </button>
+            <button id="modeXtream" class="source-tab" type="button" aria-pressed="false">
+              <span class="source-tab-title">Xtream Codes</span>
+              <span class="source-tab-sub">Server + bruker + passord</span>
+            </button>
+          </div>
+        </fieldset>
 
-        <button id="submitButton" type="submit">Send til TV <span aria-hidden="true">→</span></button>
+        <div id="m3uPanel" class="source-panel">
+          <label>
+            <span>M3U / M3U8-adresse</span>
+            <input id="playlistUrl" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://leverandor.example/playlist.m3u">
+          </label>
+        </div>
+
+        <div id="xtreamPanel" class="source-panel" hidden>
+          <label>
+            <span>XC-server</span>
+            <input id="xcServer" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://server.example:8080">
+            <small>Bruk serveradressen fra leverandøren. Du trenger ikke skrive /get.php.</small>
+          </label>
+
+          <div class="xc-grid">
+            <label>
+              <span>Brukernavn</span>
+              <input id="xcUsername" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Brukernavn">
+            </label>
+
+            <label>
+              <span>Passord</span>
+              <div class="password-wrap">
+                <input id="xcPassword" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Passord">
+                <button id="togglePassword" class="password-toggle" type="button" aria-label="Vis passord" aria-pressed="false">Vis</button>
+              </div>
+            </label>
+          </div>
+
+          <div class="xc-note">
+            Cloud247 TV lager M3U-adressen automatisk med m3u_plus og MPEG-TS. Android-appen finner også XMLTV/EPG automatisk fra XC-kontoen.
+          </div>
+        </div>
+
+        <button id="submitButton" class="submit-button" type="submit"><span id="submitLabel">Send M3U til TV</span> <span aria-hidden="true">→</span></button>
         <div id="status" class="status" role="status" aria-live="polite"></div>
       </form>
 
       <div class="privacy">
         <strong>Personvern</strong>
-        <p>M3U-adressen lagres midlertidig i Cloudflare kun mens TV-en kobles til. Den slettes når TV-en har hentet den, eller automatisk etter omtrent 10 minutter. TV-en lagrer adressen lokalt for senere oppstart.</p>
+        <p>M3U-adressen lagres midlertidig i Cloudflare kun mens TV-en kobles til. Ved XC bygges M3U-adressen i nettleseren fra server, brukernavn og passord og sendes gjennom samme pairing-tjeneste. Dataene slettes når TV-en har hentet dem, eller automatisk etter omtrent 10 minutter. TV-en lagrer spillelisteadressen lokalt for senere oppstart.</p>
       </div>
     </section>
   </main>
 
-  <footer>© 2026 Cloud247 · Cloud247 TV · Android TV v1.1.6 · Samsung TV v1.0.2</footer>
+  <footer>© 2026 Cloud247 · Cloud247 TV · Android v1.6.0 · Samsung TV v1.0.3</footer>
 </body>
 </html>
