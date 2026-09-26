@@ -679,6 +679,218 @@ class FullscreenPlayerActivity : FragmentActivity() {
         playCurrentChannel()
     }
 
+    private fun updateCastMode(remote: Boolean) {
+        if (!castSupported && remote) return
+        val changed = isCasting != remote
+        isCasting = remote
+
+        if (remote) {
+            clearAutoFrameRate()
+            overlayHandler.removeCallbacksAndMessages(null)
+            overlay.visibility = View.GONE
+            touchControls.visibility = View.GONE
+            channelPanel.visibility = View.GONE
+            nightPanel.visibility = View.GONE
+            playerView.visibility = View.GONE
+            castRemoteRoot.visibility = View.VISIBLE
+            refreshCastRemotePanel()
+        } else {
+            castRemoteRoot.visibility = View.GONE
+            playerView.visibility = View.VISIBLE
+            playerView.player = player
+            applyNightMode()
+            if (changed) showOverlay()
+        }
+    }
+
+    private fun currentCastDeviceName(): String {
+        return try {
+            CastContext.getSharedInstance(this)
+                .sessionManager
+                .currentCastSession
+                ?.castDevice
+                ?.friendlyName
+                ?.takeIf { it.isNotBlank() }
+                ?: "Chromecast"
+        } catch (_: Exception) {
+            "Chromecast"
+        }
+    }
+
+    private fun endCastSession() {
+        try {
+            CastContext.getSharedInstance(this)
+                .sessionManager
+                .endCurrentSession(true)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun setCastTab(tab: CastTab) {
+        castTab = tab
+        refreshCastRemotePanel()
+    }
+
+    private fun refreshCastRemoteControls() {
+        if (!::castRemotePlayPause.isInitialized) return
+        castRemotePlayPause.text = if (player?.isPlaying == true) "Pause" else "Spill"
+    }
+
+    private fun refreshCastRemotePanel() {
+        if (!::castRemoteRoot.isInitialized || !isCasting) return
+
+        val channel = channels.getOrNull(channelIndex)
+        castRemoteDevice.text = "📺 Spiller på ${currentCastDeviceName()}"
+        castRemoteName.text = channel?.name?.ifBlank { "Cloud247 TV" } ?: "Cloud247 TV"
+
+        val window = channel?.let { EpgLookup.window(it, epgData) }
+        castRemoteProgram.text = window?.now?.let {
+            "Nå ${timeFormat.format(it.start)} · ${it.title}"
+        } ?: "Direktesending"
+        castRemoteNextProgram.text = window?.next?.let {
+            "Neste ${timeFormat.format(it.start)} · ${it.title}"
+        } ?: ""
+
+        val endAt = NightModePreferences.sleepEndAt(this)
+        val remaining = endAt - System.currentTimeMillis()
+        castRemoteSleep.text = if (remaining > 0L) {
+            "Sleep · ${((remaining + 59_999L) / 60_000L)} min"
+        } else {
+            "Sleep · Av"
+        }
+        refreshCastRemoteControls()
+
+        castTabRemote.setTextColor(
+            getColor(if (castTab == CastTab.REMOTE) R.color.yellow else R.color.white)
+        )
+        castTabChannels.setTextColor(
+            getColor(if (castTab == CastTab.CHANNELS) R.color.yellow else R.color.white)
+        )
+        castTabGuide.setTextColor(
+            getColor(if (castTab == CastTab.GUIDE) R.color.yellow else R.color.white)
+        )
+        castTabSport.setTextColor(
+            getColor(if (castTab == CastTab.SPORT) R.color.yellow else R.color.white)
+        )
+
+        val rows = when (castTab) {
+            CastTab.REMOTE -> buildRemoteRows(channel)
+            CastTab.CHANNELS -> buildChannelRows()
+            CastTab.GUIDE -> buildGuideRows()
+            CastTab.SPORT -> buildSportsRows()
+        }
+
+        castRemoteContentTitle.text = when (castTab) {
+            CastTab.REMOTE -> "REMOTE"
+            CastTab.CHANNELS -> "KANALER · ${channels.size}"
+            CastTab.GUIDE -> "TV-GUIDE"
+            CastTab.SPORT -> "SPORT · KOMMENDE FOR DEG"
+        }
+        castRemoteContentStatus.text = when (castTab) {
+            CastTab.REMOTE -> "Nettbrettet fungerer nå som kontrollpanel."
+            CastTab.CHANNELS -> "Trykk på en kanal for å sende den direkte til TV-en."
+            CastTab.GUIDE -> "Nå og neste. Trykk på en kanal for å bytte på TV-en."
+            CastTab.SPORT -> "Trykk på en sportshendelse med kanal-match for å sende den til TV-en."
+        }
+
+        castRemoteAdapter.setRows(rows)
+    }
+
+    private fun buildRemoteRows(channel: Channel?): List<CastPanelRow> {
+        if (channel == null) return emptyList()
+        val window = EpgLookup.window(channel, epgData)
+        val endAt = NightModePreferences.sleepEndAt(this)
+        val remaining = endAt - System.currentTimeMillis()
+        val sleepText = if (remaining > 0L) {
+            "${((remaining + 59_999L) / 60_000L)} min igjen"
+        } else {
+            "Av"
+        }
+
+        return listOf(
+            CastPanelRow(
+                title = "Nå · ${channel.name}",
+                subtitle = window.now?.title ?: "Direktesending"
+            ),
+            CastPanelRow(
+                title = "Neste",
+                subtitle = window.next?.let {
+                    "${timeFormat.format(it.start)} · ${it.title}"
+                } ?: "Ingen EPG-data"
+            ),
+            CastPanelRow(
+                title = "Cast-enhet",
+                subtitle = currentCastDeviceName()
+            ),
+            CastPanelRow(
+                title = "Sleep timer",
+                subtitle = "$sleepText · stopper Chromecast når tiden går ut"
+            )
+        )
+    }
+
+    private fun buildChannelRows(): List<CastPanelRow> =
+        channels.mapIndexed { index, channel ->
+            val now = EpgLookup.window(channel, epgData).now
+            CastPanelRow(
+                title = if (index == channelIndex) "▶ ${channel.name}" else channel.name,
+                subtitle = now?.title ?: channel.group,
+                channelIndex = index
+            )
+        }
+
+    private fun buildGuideRows(): List<CastPanelRow> =
+        channels.mapIndexed { index, channel ->
+            val window = EpgLookup.window(channel, epgData)
+            val subtitle = buildString {
+                if (window.now != null) append("Nå · ${window.now.title}")
+                else append("Ingen programinfo")
+                if (window.next != null) {
+                    append(
+                        "   |   Neste ${timeFormat.format(window.next.start)} · ${window.next.title}"
+                    )
+                }
+            }
+            CastPanelRow(
+                title = channel.name,
+                subtitle = subtitle,
+                channelIndex = index
+            )
+        }
+
+    private fun buildSportsRows(): List<CastPanelRow> {
+        val events = SportsHubCache.load(this).events.take(30)
+        if (events.isEmpty()) {
+            return listOf(
+                CastPanelRow(
+                    title = "Ingen kommende sport lagret",
+                    subtitle = "Åpne Sport fra hovedskjermen for å velge favoritter og hente sportsdata."
+                )
+            )
+        }
+
+        return events.map { event ->
+            val match = SportsChannelMatcher.find(event, channels, epgData)
+            val targetIndex = match?.channel?.let { matched ->
+                channels.indexOfFirst {
+                    it.url == matched.url && it.name == matched.name
+                }.takeIf { it >= 0 }
+            }
+            val icon = when (event.sport) {
+                "tennis" -> "🎾"
+                "golf" -> "⛳"
+                else -> "⚽"
+            }
+            val channelText = match?.channel?.name ?: "Kanal ikke matchet ennå"
+            CastPanelRow(
+                title = "$icon ${event.title}",
+                subtitle =
+                    "${castEventFormat.format(event.start)} · ${event.competition} · $channelText",
+                channelIndex = targetIndex
+            )
+        }
+    }
+
     private fun showOverlay() {
         overlay.animate().cancel()
         touchControls.animate().cancel()
