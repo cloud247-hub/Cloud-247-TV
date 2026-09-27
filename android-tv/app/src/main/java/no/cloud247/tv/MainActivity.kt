@@ -717,7 +717,19 @@ class MainActivity : Activity() {
     }
 
     private fun openSportsHub() {
-        SportsHubActivity.prepareSession(playlist.channels, epgData)
+        val matchChannels = buildList {
+            addAll(playlist.channels.filter { it.favoriteKey() in favorites })
+            addAll(golfChannels)
+            addAll(premierLeagueChannels)
+            addAll(tennisChannels)
+            addAll(norwegianChannels)
+        }.distinctBy { it.favoriteKey() }
+
+        SportsHubActivity.prepareSession(
+            channels = playlist.channels,
+            matchChannels = matchChannels,
+            epg = epgData
+        )
         startActivity(Intent(this, SportsHubActivity::class.java))
     }
 

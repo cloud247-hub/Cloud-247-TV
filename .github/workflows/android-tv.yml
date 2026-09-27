@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.7.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.8.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.5.7
-          path: Cloud247-TV-Android-v1.5.7.apk
+          name: Cloud247-TV-Android-v1.5.8
+          path: Cloud247-TV-Android-v1.5.8.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,10 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.5.7 keeps the stable v1.5.2 player and improves Sports Hub channel matching only: golf is treated as a multi-day tournament, exact tournament-title matches beat generic tour matches, tour labels and golf-channel metadata are used as fallback signals, and Norwegian golf channels get a tie-break preference."
-          if gh release view android-tv-v1.5.7 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.5.7 Cloud247-TV-Android-v1.5.7.apk --clobber
-            gh release edit android-tv-v1.5.7 --title "Cloud247 TV Android v1.5.7" --notes "$RELEASE_NOTES"
+          RELEASE_NOTES="Android v1.5.8 keeps the stable v1.5.2 player and fixes Sports Hub performance only: channel matching is limited to Favoritter, Golf, Fotball, Tennis and Norske kanaler, and matching runs in the background so large IPTV playlists cannot freeze the UI."
+          if gh release view android-tv-v1.5.8 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.5.8 Cloud247-TV-Android-v1.5.8.apk --clobber
+            gh release edit android-tv-v1.5.8 --title "Cloud247 TV Android v1.5.8" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.5.7 Cloud247-TV-Android-v1.5.7.apk --title "Cloud247 TV Android v1.5.7" --notes "$RELEASE_NOTES"
+            gh release create android-tv-v1.5.8 Cloud247-TV-Android-v1.5.8.apk --title "Cloud247 TV Android v1.5.8" --notes "$RELEASE_NOTES"
           fi
