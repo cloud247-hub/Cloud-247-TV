@@ -118,13 +118,33 @@
                     android:layout_height="wrap_content" android:layout_marginTop="5dp"
                     android:text="⚽ –   🎾 –   ⛳ –" android:textColor="@color/muted" android:textSize="12sp" />
             </LinearLayout>
-            <Button android:id="@+id/sportsHubRefresh" android:layout_width="120dp"
+            <Button android:id="@+id/sportsHubRefresh" android:layout_width="110dp"
                 android:layout_height="46dp" android:background="@drawable/focus_button"
                 android:text="Oppdater" android:textColor="@color/button_text" />
-            <Button android:id="@+id/sportsHubBack" android:layout_width="110dp"
+            <Button android:id="@+id/sportsHubSync" android:layout_width="130dp"
+                android:layout_height="46dp" android:layout_marginLeft="8dp"
+                android:background="@drawable/focus_button" android:text="Synk kanaler"
+                android:textColor="@color/button_text" />
+            <Button android:id="@+id/sportsHubBack" android:layout_width="100dp"
                 android:layout_height="46dp" android:layout_marginLeft="8dp"
                 android:background="@drawable/focus_button" android:text="Tilbake"
                 android:textColor="@color/button_text" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:orientation="horizontal">
+            <Button android:id="@+id/sportsHubFilterFootball" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1"
+                android:background="@drawable/focus_button" android:text="⚽ Fotball"
+                android:textColor="@color/button_text" />
+            <Button android:id="@+id/sportsHubFilterGolf" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1"
+                android:layout_marginLeft="8dp" android:background="@drawable/focus_button"
+                android:text="⛳ Golf" android:textColor="@color/button_text" />
+            <Button android:id="@+id/sportsHubFilterTennis" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1"
+                android:layout_marginLeft="8dp" android:background="@drawable/focus_button"
+                android:text="🎾 Tennis" android:textColor="@color/button_text" />
         </LinearLayout>
 
         <TextView android:id="@+id/sportsHubStatus" android:layout_width="match_parent"

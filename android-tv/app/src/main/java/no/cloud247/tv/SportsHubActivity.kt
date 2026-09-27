@@ -59,7 +59,13 @@ class SportsHubActivity : Activity() {
     private lateinit var sources: TextView
     private lateinit var list: ListView
     private lateinit var adapter: EventAdapter
+    private lateinit var footballFilter: Button
+    private lateinit var golfFilter: Button
+    private lateinit var tennisFilter: Button
     private var leadMinutes = 30
+    private var activeSport: String? = null
+    private var allRows: List<EventRow> = emptyList()
+    private var currentResponse = SportsHubResponse(emptyList(), emptyMap())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +104,15 @@ class SportsHubActivity : Activity() {
             refresh()
         }
         findViewById<Button>(R.id.sportsHubRefresh).setOnClickListener { refresh() }
+        findViewById<Button>(R.id.sportsHubSync).setOnClickListener {
+            SportsHubCache.clearMatches(this)
+            render(currentResponse, forceMatching = true)
+        }
         findViewById<Button>(R.id.sportsHubBack).setOnClickListener { finish() }
+
+        footballFilter.setOnClickListener { toggleSportFilter("football") }
+        golfFilter.setOnClickListener { toggleSportFilter("golf") }
+        tennisFilter.setOnClickListener { toggleSportFilter("tennis") }
 
         masterAlerts.setOnCheckedChangeListener { _, checked ->
             SportsHubPreferences.setEnabled(this, checked)
@@ -117,7 +131,8 @@ class SportsHubActivity : Activity() {
             saveFavorites(silent = true)
         }
 
-        render(SportsHubCache.load(this))
+        val cachedResponse = SportsHubCache.load(this)
+        render(cachedResponse, allowMatching = false)
         refresh()
     }
 
@@ -139,6 +154,9 @@ class SportsHubActivity : Activity() {
         status = findViewById(R.id.sportsHubStatus)
         sources = findViewById(R.id.sportsHubSources)
         list = findViewById(R.id.sportsHubList)
+        footballFilter = findViewById(R.id.sportsHubFilterFootball)
+        golfFilter = findViewById(R.id.sportsHubFilterGolf)
+        tennisFilter = findViewById(R.id.sportsHubFilterTennis)
     }
 
     private fun loadConfig() {
@@ -301,7 +319,12 @@ class SportsHubActivity : Activity() {
         }
     }
 
-    private fun render(response: SportsHubResponse) {
+    private fun render(
+        response: SportsHubResponse,
+        allowMatching: Boolean = true,
+        forceMatching: Boolean = false
+    ) {
+        currentResponse = response
         matchGeneration += 1
         val generation = matchGeneration
 
@@ -319,13 +342,55 @@ class SportsHubActivity : Activity() {
         }
 
         if (response.events.isEmpty()) {
-            adapter.setRows(emptyList())
+            setEventRows(emptyList())
             status.text = "Ingen kommende sportshendelser tilgjengelig akkurat nå."
             return
         }
 
-        adapter.setRows(
-            response.events.map { event ->
+        val events = response.events.toList()
+        val cachedMatches = SportsHubCache.loadMatches(this, sessionMatchChannels)
+        val cacheFresh = SportsHubCache.matchesFresh(this)
+
+        if (!forceMatching && (cacheFresh || !allowMatching)) {
+            val rows = events.map { event ->
+                EventRow(
+                    event = event,
+                    channelMatch = cachedMatches[SportsHubCache.eventMatchKey(event)],
+                    matching = false
+                )
+            }
+            setEventRows(rows)
+            val matched = rows.count { it.channelMatch != null }
+            status.text = when {
+                cacheFresh ->
+                    "${rows.size} kommende · $matched kanaler fra dagens kanalsynk."
+                cachedMatches.isNotEmpty() ->
+                    "${rows.size} kommende · viser sist synkroniserte kanal-matcher."
+                else ->
+                    "${rows.size} kommende · kanaler synkroniseres etter sportsdata er oppdatert."
+            }
+            return
+        }
+
+        if (sessionEpg.programsById.isEmpty()) {
+            val rows = events.map { event ->
+                EventRow(
+                    event = event,
+                    channelMatch = cachedMatches[SportsHubCache.eventMatchKey(event)],
+                    matching = false
+                )
+            }
+            setEventRows(rows)
+            status.text =
+                "${events.size} kommende · EPG må være lastet for kanalmatching."
+            return
+        }
+
+        val matchChannels = sessionMatchChannels.toList()
+        val epg = sessionEpg
+
+        setEventRows(
+            events.map { event ->
                 EventRow(
                     event = event,
                     channelMatch = null,
@@ -334,53 +399,68 @@ class SportsHubActivity : Activity() {
             }
         )
 
-        if (sessionEpg.programsById.isEmpty()) {
-            adapter.setRows(
-                response.events.map { event ->
-                    EventRow(
-                        event = event,
-                        channelMatch = null,
-                        matching = false
-                    )
-                }
-            )
-            status.text =
-                "${response.events.size} kommende · EPG må være lastet for kanalmatching."
-            return
-        }
-
-        val events = response.events.toList()
-        val matchChannels = sessionMatchChannels.toList()
-        val epg = sessionEpg
-
         status.text =
             "${events.size} kommende · matcher mot ${matchChannels.size} smartkanaler i bakgrunnen …"
 
         matchExecutor.execute {
+            val matches = linkedMapOf<String, SportsChannelMatch>()
             val rows = events.map { event ->
+                val match = SportsChannelMatcher.find(event, matchChannels, epg)
+                if (match != null) {
+                    matches[SportsHubCache.eventMatchKey(event)] = match
+                }
                 EventRow(
                     event = event,
-                    channelMatch = SportsChannelMatcher.find(
-                        event,
-                        matchChannels,
-                        epg
-                    ),
+                    channelMatch = match,
                     matching = false
                 )
             }
+
+            SportsHubCache.saveMatches(this, matches)
 
             runOnUiThread {
                 if (isFinishing || generation != matchGeneration) {
                     return@runOnUiThread
                 }
 
-                adapter.setRows(rows)
+                setEventRows(rows)
                 val matched = rows.count { it.channelMatch != null }
                 status.text =
                     "${rows.size} kommende · $matched kanaler matchet mot " +
-                        "${matchChannels.size} smartkanaler."
+                        "${matchChannels.size} smartkanaler · lagret i 24 timer."
             }
         }
+    }
+
+    private fun setEventRows(items: List<EventRow>) {
+        allRows = items
+        applySportFilter()
+    }
+
+    private fun toggleSportFilter(sport: String) {
+        activeSport = if (activeSport == sport) null else sport
+        applySportFilter()
+    }
+
+    private fun applySportFilter() {
+        val visibleRows = activeSport?.let { sport ->
+            allRows.filter { it.event.sport == sport }
+        } ?: allRows
+
+        adapter.setRows(visibleRows)
+        updateSportFilterButtons()
+    }
+
+    private fun updateSportFilterButtons() {
+        updateSportFilterButton(footballFilter, "football", "⚽ Fotball")
+        updateSportFilterButton(golfFilter, "golf", "⛳ Golf")
+        updateSportFilterButton(tennisFilter, "tennis", "🎾 Tennis")
+    }
+
+    private fun updateSportFilterButton(button: Button, sport: String, label: String) {
+        val selected = activeSport == sport
+        button.text = if (selected) "✓ $label" else label
+        button.alpha = if (activeSport == null || selected) 1.0f else 0.72f
     }
 
     private fun updateLeadButton() {

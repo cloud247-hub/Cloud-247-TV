@@ -10,6 +10,9 @@ object SportsHubCache {
     private const val EVENTS = "events"
     private const val SOURCES = "sources"
     private const val UPDATED = "updated"
+    private const val MATCHES = "channel_matches"
+    private const val MATCH_UPDATED = "channel_matches_updated"
+    private const val MATCH_TTL_MS = 24L * 60L * 60L * 1000L
 
     fun save(context: Context, response: SportsHubResponse) {
         val events = JSONArray()
@@ -98,4 +101,82 @@ object SportsHubCache {
 
     fun updatedAt(context: Context): Long =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(UPDATED, 0L)
+
+    fun eventMatchKey(event: SportsHubEvent): String =
+        "${event.sport}|${event.id}|${event.start.time}"
+
+    fun matchesFresh(context: Context): Boolean {
+        val updated = matchUpdatedAt(context)
+        val now = System.currentTimeMillis()
+        return updated > 0L && now >= updated && now - updated < MATCH_TTL_MS
+    }
+
+    fun matchUpdatedAt(context: Context): Long =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getLong(MATCH_UPDATED, 0L)
+
+    fun clearMatches(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(MATCHES)
+            .remove(MATCH_UPDATED)
+            .apply()
+    }
+
+    fun saveMatches(
+        context: Context,
+        matches: Map<String, SportsChannelMatch>
+    ) {
+        val root = JSONObject()
+        matches.forEach { (key, match) ->
+            root.put(
+                key,
+                JSONObject()
+                    .put("url", match.channel.url)
+                    .put("favoriteKey", match.channel.favoriteKey())
+                    .put("programme", match.programme)
+                    .put("score", match.score)
+            )
+        }
+
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(MATCHES, root.toString())
+            .putLong(MATCH_UPDATED, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun loadMatches(
+        context: Context,
+        channels: List<Channel>
+    ): Map<String, SportsChannelMatch> {
+        if (channels.isEmpty()) return emptyMap()
+
+        val byUrl = channels.associateBy { it.url }
+        val byFavoriteKey = channels.associateBy { it.favoriteKey() }
+        val result = linkedMapOf<String, SportsChannelMatch>()
+
+        try {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val root = JSONObject(prefs.getString(MATCHES, "{}").orEmpty())
+            val keys = root.keys()
+
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val item = root.optJSONObject(key) ?: continue
+                val channel = byUrl[item.optString("url")] ?:
+                    byFavoriteKey[item.optString("favoriteKey")] ?:
+                    continue
+
+                result[key] = SportsChannelMatch(
+                    channel = channel,
+                    programme = item.optString("programme"),
+                    score = item.optInt("score", 0)
+                )
+            }
+        } catch (_: Exception) {
+        }
+
+        return result
+    }
 }
