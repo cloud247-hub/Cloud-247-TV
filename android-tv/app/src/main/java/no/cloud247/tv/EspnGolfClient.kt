@@ -47,7 +47,10 @@ object EspnGolfClient {
             sources = mapOf(
                 "football" to SportsSourceStatus(false, "Sports-backend ikke tilgjengelig"),
                 "tennis" to SportsSourceStatus(false, "Sports-backend ikke tilgjengelig"),
-                "golf" to SportsSourceStatus(true, "ESPN Golf · direkte")
+                "golf" to SportsSourceStatus(
+                    true,
+                    "ESPN Golf · direkte · ${events.size} turneringer"
+                )
             )
         )
     }
@@ -178,7 +181,7 @@ object EspnGolfClient {
             useCaches = true
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.5")
+            setRequestProperty("User-Agent", "Cloud247-TV-Golf/1.5.6")
         }
 
         try {
@@ -221,7 +224,7 @@ object EspnGolfClient {
         // 2026-10-01T04:00Z. Instant.parse() requires seconds, so normalize
         // those values before parsing.
         val normalized = if (
-            Regex("""^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}Z$""").matches(value)
+            Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z$""").matches(value)
         ) {
             value.removeSuffix("Z") + ":00Z"
         } else {

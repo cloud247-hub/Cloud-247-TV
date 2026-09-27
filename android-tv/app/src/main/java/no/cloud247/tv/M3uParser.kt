@@ -1,7 +1,7 @@
 package no.cloud247.tv
 
 object M3uParser {
-    private val attrRegex = Regex("""([\\w-]+)=\"([^\"]*)\"""")
+    private val attrRegex = Regex("([\\w-]+)=\"([^\"]*)\"")
 
     fun parse(text: String, name: String = "Spilleliste"): Playlist {
         val channels = mutableListOf<Channel>()

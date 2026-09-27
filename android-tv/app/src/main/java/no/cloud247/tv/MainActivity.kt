@@ -279,13 +279,23 @@ class MainActivity : Activity() {
             try {
                 val text = NetworkClient.fetchText(url, MAX_M3U_BYTES)
                 val name = try { URL(url).host.removePrefix("www.") } catch (_: Exception) { "Spilleliste" }
-                val parsed = M3uParser.parse(text, name)
+                val parsedRaw = M3uParser.parse(text, name)
+                val derivedEpg = if (parsedRaw.epgUrl.isBlank()) {
+                    XtreamUrlHelper.epgUrlFromPlaylistUrl(url)
+                } else {
+                    null
+                }
+                val parsed = if (!derivedEpg.isNullOrBlank()) {
+                    parsedRaw.copy(epgUrl = derivedEpg)
+                } else {
+                    parsedRaw
+                }
                 val index = buildPlaylistIndex(parsed.channels)
                 runOnUiThread {
                     if (persistOnSuccess) securePlaylistStore.save(url)
                     Log.i(
                         logTag,
-                        "playlist_load_success channels=${parsed.channels.size} norwegian=${index.norwegian.size} epl=${index.premierLeague.size} tennis=${index.tennis.size} golf=${index.golf.size}"
+                        "playlist_load_success channels=${parsed.channels.size} norwegian=${index.norwegian.size} epl=${index.premierLeague.size} tennis=${index.tennis.size} golf=${index.golf.size} epgAuto=${derivedEpg != null}"
                     )
                     playlistUrl.setText("")
                     applyPlaylist(parsed, index)
