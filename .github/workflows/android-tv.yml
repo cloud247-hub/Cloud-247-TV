@@ -44,13 +44,13 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.9.apk
+        run: cp android-tv/app/build/outputs/apk/debug/app-debug.apk Cloud247-TV-Android-v1.5.10.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cloud247-TV-Android-v1.5.9
-          path: Cloud247-TV-Android-v1.5.9.apk
+          name: Cloud247-TV-Android-v1.5.10
+          path: Cloud247-TV-Android-v1.5.10.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -58,10 +58,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_NOTES="Android v1.5.9 keeps the stable player and improves Sports Hub: channel matches are cached for 24 hours, a manual Synk kanaler button can force a rematch, and Fotball/Golf/Tennis filter buttons make the sports list faster to browse."
-          if gh release view android-tv-v1.5.9 >/dev/null 2>&1; then
-            gh release upload android-tv-v1.5.9 Cloud247-TV-Android-v1.5.9.apk --clobber
-            gh release edit android-tv-v1.5.9 --title "Cloud247 TV Android v1.5.9" --notes "$RELEASE_NOTES"
+          RELEASE_NOTES="Android v1.5.10 adds an Xtream Codes compatibility retry for IPTV servers that reset HTTP connections. On a transient socket reset the app retries once without gzip and with Connection: close, while keeping the v1.5.9 Sports Hub improvements."
+          if gh release view android-tv-v1.5.10 >/dev/null 2>&1; then
+            gh release upload android-tv-v1.5.10 Cloud247-TV-Android-v1.5.10.apk --clobber
+            gh release edit android-tv-v1.5.10 --title "Cloud247 TV Android v1.5.10" --notes "$RELEASE_NOTES"
           else
-            gh release create android-tv-v1.5.9 Cloud247-TV-Android-v1.5.9.apk --title "Cloud247 TV Android v1.5.9" --notes "$RELEASE_NOTES"
+            gh release create android-tv-v1.5.10 Cloud247-TV-Android-v1.5.10.apk --title "Cloud247 TV Android v1.5.10" --notes "$RELEASE_NOTES"
           fi

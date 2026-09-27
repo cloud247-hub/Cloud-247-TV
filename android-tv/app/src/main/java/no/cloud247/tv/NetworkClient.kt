@@ -2,11 +2,15 @@ package no.cloud247.tv
 
 import android.util.Base64
 import java.io.ByteArrayOutputStream
+import java.io.EOFException
 import java.io.FilterInputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
+import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.URI
 import java.net.URL
+import javax.net.ssl.SSLException
 import java.util.zip.GZIPInputStream
 
 object NetworkClient {
@@ -33,6 +37,36 @@ object NetworkClient {
     }
 
     fun <T> withInputStream(url: String, maxBytes: Int, block: (InputStream) -> T): T {
+        val modes = listOf(
+            RequestMode(acceptEncoding = "gzip", closeConnection = false),
+            RequestMode(acceptEncoding = "identity", closeConnection = true)
+        )
+
+        for ((index, mode) in modes.withIndex()) {
+            try {
+                return withInputStreamAttempt(url, maxBytes, mode, block)
+            } catch (error: Exception) {
+                val transient = isTransientConnectionError(error)
+                if (!transient) throw error
+
+                if (index == modes.lastIndex) {
+                    throw NetworkException(
+                        "IPTV-serveren avbrøt forbindelsen etter nytt forsøk. Prøv igjen om litt.",
+                        error
+                    )
+                }
+            }
+        }
+
+        throw NetworkException("Kunne ikke hente adressen")
+    }
+
+    private fun <T> withInputStreamAttempt(
+        url: String,
+        maxBytes: Int,
+        mode: RequestMode,
+        block: (InputStream) -> T
+    ): T {
         var current = URL(url)
         var inheritedAuthorization: String? = basicAuthorization(current)
 
@@ -46,7 +80,11 @@ object NetworkClient {
                 useCaches = false
                 setRequestProperty("User-Agent", USER_AGENT)
                 setRequestProperty("Accept", "*/*")
-                setRequestProperty("Accept-Encoding", "gzip")
+                setRequestProperty("Accept-Encoding", mode.acceptEncoding)
+                if (mode.closeConnection) {
+                    setRequestProperty("Connection", "close")
+                    setRequestProperty("Cache-Control", "no-cache")
+                }
                 inheritedAuthorization?.let { setRequestProperty("Authorization", it) }
             }
 
@@ -99,6 +137,38 @@ object NetworkClient {
         throw NetworkException("Kunne ikke hente adressen")
     }
 
+    private fun isTransientConnectionError(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            if (
+                current is SocketException ||
+                current is SocketTimeoutException ||
+                current is EOFException
+            ) {
+                return true
+            }
+
+            if (current is SSLException) {
+                val message = current.message.orEmpty().lowercase()
+                if (
+                    message.contains("connection reset") ||
+                    message.contains("connection closed") ||
+                    message.contains("unexpected end")
+                ) {
+                    return true
+                }
+            }
+
+            current = current.cause
+        }
+        return false
+    }
+
+    private data class RequestMode(
+        val acceptEncoding: String,
+        val closeConnection: Boolean
+    )
+
     private class LimitedInputStream(
         input: InputStream,
         private val maxBytes: Int
@@ -137,4 +207,4 @@ object NetworkClient {
     }
 }
 
-class NetworkException(message: String) : Exception(message)
+class NetworkException(message: String, cause: Throwable? = null) : Exception(message, cause)
